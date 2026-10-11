@@ -1,6 +1,7 @@
 //! Controller IC module for various EPD display drivers.
 
 pub mod ed2208;
+pub mod ist7163;
 pub mod jd7966x;
 pub mod pervasive_bw;
 pub mod pervasive_bwry;
@@ -9,6 +10,7 @@ pub mod ssd168x;
 pub mod uc8253;
 
 pub use ed2208::Ed2208Controller;
+pub use ist7163::Ist7163Controller;
 pub use jd7966x::{
     Jd79660Controller, Jd79661Controller, Jd7966xController, Jd7966xVariant, Jd79676Controller,
 };
