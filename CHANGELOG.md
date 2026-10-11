@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-10
+
 ### Added
 
 - `Ist7163Controller` and the `GDEM037F51` panel (3.7" 240 x 416 Quad-Color, Good Display; sold by
@@ -681,7 +683,8 @@ Initial release.
 - `no_std` builds verified against `thumbv6m-none-eabi`, `thumbv7em-none-eabihf`, and
   `riscv32imac-unknown-none-elf`.
 
-[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/melastmohican/epdsi/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/melastmohican/epdsi/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/melastmohican/epdsi/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/melastmohican/epdsi/compare/v0.6.0...v0.6.1
