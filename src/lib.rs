@@ -145,6 +145,219 @@
 //! wrong output rather than a fast update. Partial *window* updates still work, at full
 //! refresh speed.
 //!
+//! # Writing your own panel or controller
+//!
+//! If the combination you need is not in the table above, you do not have to wait for a
+//! release. [`EpdPanel`] and [`EpdController`] are ordinary public traits, so a panel or a driver
+//! IC can live in your own crate and plug into [`EpdBuilder`] exactly like the shipped ones.
+//!
+//! | You have | You write | You reuse |
+//! | :--- | :--- | :--- |
+//! | A new panel on a driver IC `epdsi` already supports | an [`EpdPanel`], three constants | the shipped controller |
+//! | A driver IC `epdsi` does not support | an [`EpdController`] and an [`EpdPanel`] | [`SpiBusWrapper`], [`EpdBuilder`], paged rendering |
+//! | A shipped controller that needs a different init | a wrapper that delegates to it, as [`Jd79660Controller`] does over [`Jd7966xController`] | everything else |
+//!
+//! ## A new panel on a shipped controller
+//!
+//! A panel is a zero-sized type holding static facts. Nothing else is needed when the vendor's
+//! init matches a controller `epdsi` already ships:
+//!
+//! ```rust
+//! use epdsi::prelude::*;
+//!
+//! /// A hypothetical 2.13" tri-colour panel behind an SSD1680.
+//! #[derive(Debug, Clone, Copy, Default)]
+//! pub struct MyPanel;
+//!
+//! impl EpdPanel for MyPanel {
+//!     const WIDTH: u32 = 122;
+//!     const HEIGHT: u32 = 250;
+//!     const COLOR_MODE: ColorMode = ColorMode::TriColor;
+//!     // Declare these only if the vendor's reference driver writes them for this panel.
+//!     // const VCOM: Option<u8> = Some(0x28);
+//! }
+//!
+//! // `for_panel` reads WIDTH, HEIGHT and the optional overrides from the panel type.
+//! let _controller = Ssd1680Controller::for_panel::<MyPanel>();
+//! ```
+//!
+//! ## Your own controller
+//!
+//! [`EpdController`] has seven methods: `init_sequence`, `set_window`, `set_cursor`,
+//! `write_frame`, `write_frame_pattern`, `trigger_refresh` and `sleep`. The bus helpers on
+//! [`SpiBusWrapper`] (`hard_reset`, `send_command`, `send_command_with_data`,
+//! `send_data_repeated`, `wait_busy`) cover everything a register-level driver needs.
+//!
+//! The trait is declared through `maybe_async_cfg`, so its methods are plain functions in
+//! blocking mode and `async fn` in async mode. A crate outside `epdsi` has to follow the same
+//! switch. Give your crate a feature named exactly `blocking` that forwards to `epdsi`, and take
+//! `epdsi` with its default features off:
+//!
+//! ```toml
+//! [dependencies]
+//! epdsi = { version = "0.7", default-features = false }
+//! embedded-hal = "1.0"
+//! embedded-hal-async = "1.0"
+//! maybe-async-cfg = "0.2"
+//!
+//! [features]
+//! default = ["blocking"]
+//! blocking = ["epdsi/blocking"]   # the name must be `blocking`
+//! ```
+//!
+//! With any other feature name, `maybe_async_cfg` picks the async shape while `epdsi` is
+//! blocking. The compiler then reports `E0053`, "method `init_sequence` has an incompatible
+//! type for trait ... expected `Result<..>`, found future", which does not mention the feature.
+//!
+//! The example below is a complete controller for an imaginary IC. It compiles in both modes,
+//! and `cargo test --doc` runs it in CI under each:
+//!
+//! ```rust
+//! # #[cfg(feature = "blocking")]
+//! # use embedded_hal::delay::DelayNs;
+//! # #[cfg(not(feature = "blocking"))]
+//! # use embedded_hal_async::delay::DelayNs;
+//! # #[cfg(feature = "blocking")]
+//! # use embedded_hal::spi::SpiDevice;
+//! # #[cfg(not(feature = "blocking"))]
+//! # use embedded_hal_async::spi::SpiDevice;
+//! # use embedded_hal::digital::{InputPin, OutputPin};
+//! # #[cfg(feature = "blocking")]
+//! # use embedded_hal::digital::InputPin as Wait;
+//! # #[cfg(not(feature = "blocking"))]
+//! # use embedded_hal_async::digital::Wait;
+//! use epdsi::bus::{EpdBusError, SpiBusWrapper};
+//! use epdsi::traits::{ColorChannel, ColorMode, EpdController, EpdPanel};
+//!
+//! /// Static facts about the glass.
+//! #[derive(Debug, Clone, Copy, Default)]
+//! pub struct MyPanel;
+//!
+//! impl EpdPanel for MyPanel {
+//!     const WIDTH: u32 = 128;
+//!     const HEIGHT: u32 = 296;
+//!     const COLOR_MODE: ColorMode = ColorMode::BlackWhite;
+//! }
+//!
+//! /// Command and register logic for the driver IC.
+//! pub struct MyController {
+//!     height: u32,
+//! }
+//!
+//! #[maybe_async_cfg::maybe(
+//!     sync(feature = "blocking", keep_self),
+//!     async(not(feature = "blocking"), keep_self)
+//! )]
+//! impl<SPI, DC, RST, BUSY> EpdController<SpiBusWrapper<SPI, DC, RST, BUSY>> for MyController
+//! where
+//!     SPI: SpiDevice,
+//!     DC: OutputPin,
+//!     RST: OutputPin,
+//!     BUSY: InputPin + Wait,
+//! {
+//!     type Error = EpdBusError<SPI::Error, DC::Error, RST::Error, BUSY::Error>;
+//!
+//!     async fn init_sequence<DELAY: DelayNs>(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         delay: &mut DELAY,
+//!     ) -> Result<(), Self::Error> {
+//!         bus.hard_reset(delay, 10).await?;
+//!         // `true` means BUSY is high while the panel works. Check your panel's polarity.
+//!         bus.wait_busy(true).await?;
+//!         bus.send_command_with_data(0x01, &[(self.height - 1) as u8, 0x00]).await
+//!     }
+//!
+//!     async fn set_window(
+//!         &mut self,
+//!         _bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         _x_start: u32,
+//!         _y_start: u32,
+//!         _x_end: u32,
+//!         _y_end: u32,
+//!     ) -> Result<(), Self::Error> {
+//!         Ok(()) // full-frame streaming only
+//!     }
+//!
+//!     async fn set_cursor(
+//!         &mut self,
+//!         _bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         _x: u32,
+//!         _y: u32,
+//!     ) -> Result<(), Self::Error> {
+//!         Ok(())
+//!     }
+//!
+//!     async fn write_frame(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         _channel: ColorChannel,
+//!         data: &[u8],
+//!     ) -> Result<(), Self::Error> {
+//!         bus.send_command_with_data(0x24, data).await
+//!     }
+//!
+//!     async fn write_frame_pattern(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         _channel: ColorChannel,
+//!         byte: u8,
+//!         count: usize,
+//!     ) -> Result<(), Self::Error> {
+//!         bus.send_command(0x24).await?;
+//!         bus.send_data_repeated(byte, count).await
+//!     }
+//!
+//!     async fn trigger_refresh<DELAY: DelayNs>(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         _delay: &mut DELAY,
+//!     ) -> Result<(), Self::Error> {
+//!         bus.send_command(0x20).await?;
+//!         bus.wait_busy(true).await
+//!     }
+//!
+//!     async fn sleep<DELAY: DelayNs>(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         _delay: &mut DELAY,
+//!     ) -> Result<(), Self::Error> {
+//!         bus.send_command_with_data(0x10, &[0x01]).await
+//!     }
+//! }
+//!
+//! // Bind it exactly like a shipped controller:
+//! // `EpdBuilder::<MyController, MyPanel>::new(MyController { height: 296 }).build(bus)`
+//! ```
+//!
+//! ## Before you power the panel
+//!
+//! Every hardware problem this project has hit sat outside the register values themselves, so
+//! check these first:
+//!
+//! - **Reset and BUSY polarity.** Panels differ, and a wrong `wait_busy` argument either hangs
+//!   or returns at once with nothing drawn.
+//! - **Reset pulse width.** Take the IC datasheet's minimum, then the vendor demo's value. A
+//!   pulse at the minimum has latched intermittently on some hosts.
+//! - **Pixel packing and RAM stride.** Know bits per pixel, which bit is the first pixel, and
+//!   whether the row is padded to a byte or to four pixels.
+//! - **Power sequence.** Some controllers drop their charge pump after a refresh, so a bare
+//!   refresh command is silently ignored until `PON` is sent again.
+//! - **Sleep.** Deep sleep usually wakes only through a hardware reset, so `init_sequence`
+//!   must start with one.
+//!
+//! Write the vendor demo's bytes down in order, compare them with the datasheet, and mark any
+//! byte the datasheet does not document as vendor-only in a comment. Then pin the whole stream
+//! in a test that records each SPI write together with the DC pin level, as the tests under
+//! `tests/` in this repository do, so a later edit cannot change it unnoticed.
+//!
+//! ## Sending it upstream
+//!
+//! A controller or panel that works on your bench is a good candidate for `epdsi` itself. Open
+//! an issue with the panel's part number, the vendor demo and the datasheet. Adding it means a
+//! file under `src/controllers/` or `src/panels/`, byte-exact tests, and a hardware example for
+//! blocking and async.
+//!
 //! # Cargo features
 //!
 //! - `blocking` *(default)* — the plain `embedded-hal` 1.0 API used throughout this doc.

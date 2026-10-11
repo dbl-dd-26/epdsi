@@ -585,6 +585,40 @@ epd.refresh(&mut delay).unwrap(); // full refresh only, about 20 s
 epd.sleep(&mut delay).unwrap();
 ```
 
+## Writing your own panel or controller
+
+If the panel or driver IC you have is not in the table above, you can add it from your own crate
+without waiting for a release. `EpdPanel` and `EpdController` are public traits, so your types
+plug into `EpdBuilder` like the shipped ones:
+
+- **A new panel on a supported IC:** implement `EpdPanel` (width, height, color mode, optional
+  VCOM, LUT and gate voltage) and reuse the shipped controller.
+- **A driver IC `epdsi` does not support:** implement `EpdController` (seven methods) and
+  `EpdPanel`.
+- **A shipped controller that needs a different init:** write a wrapper that delegates to it.
+
+The one thing that trips people up is that `EpdController` is sync or async depending on
+`epdsi`'s `blocking` feature. Your crate needs a feature named exactly `blocking` that forwards
+to it:
+
+```toml
+[dependencies]
+epdsi = { version = "0.7", default-features = false }
+embedded-hal = "1.0"
+embedded-hal-async = "1.0"
+maybe-async-cfg = "0.2"
+
+[features]
+default = ["blocking"]
+blocking = ["epdsi/blocking"]   # the name must be `blocking`
+```
+
+The full walkthrough, a complete controller that compiles in both modes and a checklist to run
+before powering the panel are in the
+[crate documentation](https://docs.rs/epdsi/latest/epdsi/#writing-your-own-panel-or-controller).
+If your driver works on your bench, please open an issue with the part number, the vendor demo
+and the datasheet so it can be added upstream.
+
 ## Examples on real hardware
 
 The snippets above are `rust,ignore` because they need real SPI and GPIO. For complete,
