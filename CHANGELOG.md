@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Ist7163Controller` and the `GDEM037F51` panel (3.7" 240 x 416 Quad-Color, Good Display; sold by
+  Waveshare as the "3.7inch e-Paper (G)") for the IST7163CA1-C IC. The init follows Waveshare's
+  `EPD_3in7g.cpp` and Good Display's `A32-GDEM037F51` demo, which agree on every byte. All but
+  `0xE7`, `0xE3`, `0xE9` and the last two `POFS` bytes were checked against the IST7163CA1-C
+  specification (Rev 004). It is a separate controller from the JD79661 family: PWR takes six
+  bytes and BTST three, and the init runs two test-mode register banks. Full refresh only.
+  **Bench-confirmed** blocking on RP2350, RP2040 and ESP32-C3 and async on RP2350. Waveshare's
+  fast init is not implemented, because its `0xE6 0x5B` force-temperature value is outside the
+  specification's -25 to 60 C table and register `0xA5` is not in it.
+
 ## [0.7.0] - 2026-10-09
 
 ### Added

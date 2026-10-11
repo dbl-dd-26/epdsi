@@ -40,6 +40,7 @@
 //! | [`Ssd1680Controller`] | [`GDEM0213B74`], [`GDEY0266Z90`], [`GDEY0266T90`] | 122 × 250, 152 × 296, 152 × 296 | Monochrome, Tri-Color |
 //! | [`Jd79661Controller`] | [`ZJY122250_0213AJH_E5`] / [`GDEY0213F51`] | 122 × 250 | Quad-Color |
 //! | [`Jd79676Controller`] | [`GDEY0213F52`] | 122 × 250 | Quad-Color |
+//! | [`Ist7163Controller`] | [`GDEM037F51`] | 240 × 416 | Quad-Color |
 //! | [`Jd79660Controller`] | [`GDEM0154F51H`] / [`GxEPD2_154c_GDEM0154F51H`] | 200 × 200 | Quad-Color |
 //! | [`Uc8253Controller`] | [`GDEY037T03`], [`SE0352N14TNGA0`] | 240 × 416, 240 × 360 | Monochrome, Tri-Color |
 //! | [`Ssd1677Controller`] | [`GDEQ0426T82`] | 800 × 480 | Monochrome |
@@ -201,6 +202,7 @@
 //! [`Jd79660Controller`]: controllers::Jd79660Controller
 //! [`Jd79661Controller`]: controllers::Jd79661Controller
 //! [`Jd79676Controller`]: controllers::Jd79676Controller
+//! [`Ist7163Controller`]: controllers::Ist7163Controller
 //! [`Ed2208Controller`]: controllers::Ed2208Controller
 //! [`PervasiveBwController`]: controllers::PervasiveBwController
 //! [`PervasiveBwryController`]: controllers::PervasiveBwryController
@@ -211,6 +213,7 @@
 //! [`ZJY122250_0213AJH_E5`]: panels::ZJY122250_0213AJH_E5
 //! [`GDEY0213F51`]: panels::GDEY0213F51
 //! [`GDEY0213F52`]: panels::GDEY0213F52
+//! [`GDEM037F51`]: panels::GDEM037F51
 //! [`GDEM0154F51H`]: panels::GDEM0154F51H
 //! [`GxEPD2_154c_GDEM0154F51H`]: panels::GxEPD2_154c_GDEM0154F51H
 //! [`GDEY037T03`]: panels::GDEY037T03
