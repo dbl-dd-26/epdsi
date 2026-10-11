@@ -353,10 +353,18 @@
 //!
 //! ## Sending it upstream
 //!
-//! A controller or panel that works on your bench is a good candidate for `epdsi` itself. Open
-//! an issue with the panel's part number, the vendor demo and the datasheet. Adding it means a
-//! file under `src/controllers/` or `src/panels/`, byte-exact tests, and a hardware example for
-//! blocking and async.
+//! Before you open an issue asking for a new panel, read the
+//! [panel support policy](https://github.com/melastmohican/epdsi#panel-support-policy). In
+//! short, `epdsi` only adds panels the maintainer has in hand, never from a datasheet alone, so
+//! that every parity claim is backed by a bench run. The maintainer buys new panels
+//! occasionally, if they are available to buy, and accepts donations only on exception, for
+//! panels from known sources that are well documented. Adding support takes as long as it
+//! takes.
+//!
+//! If your panel fits that, open an issue with the part number, the vendor demo and the
+//! datasheet. Adding it means a file under `src/controllers/` or `src/panels/`, byte-exact
+//! tests, and a hardware example for blocking and async. Your own crate keeps working in the
+//! meantime.
 //!
 //! # Cargo features
 //!

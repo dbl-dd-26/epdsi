@@ -616,8 +616,14 @@ blocking = ["epdsi/blocking"]   # the name must be `blocking`
 The full walkthrough, a complete controller that compiles in both modes and a checklist to run
 before powering the panel are in the
 [crate documentation](https://docs.rs/epdsi/latest/epdsi/#writing-your-own-panel-or-controller).
-If your driver works on your bench, please open an issue with the part number, the vendor demo
-and the datasheet so it can be added upstream.
+Before you open an issue asking for a new panel, read the
+[panel support policy](#panel-support-policy). In short, I only add panels I have in hand, and
+never from a datasheet alone. I buy new panels occasionally, if they are available to buy, and I
+accept donations only on exception, for panels from known sources that are well documented.
+Adding support takes as long as it takes.
+
+If your panel fits that, open an issue with the part number, the vendor demo and the datasheet.
+Your own crate keeps working in the meantime.
 
 ## Examples on real hardware
 
