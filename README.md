@@ -542,6 +542,49 @@ epd.write_frame(ColorChannel::BlackWhite, &quad_color_frame_buf).unwrap();
 epd.refresh(&mut delay).unwrap();
 ```
 
+### 13. Usage Example (Jd79676Controller + GDEY0213F52 Panel)
+
+```rust,ignore
+use epdsi::prelude::*;
+
+// Jd79676Controller wraps the same Jd7966xController as Jd79660Controller and Jd79661Controller.
+// Its init is only `0xE9 0x01` and `PON`; panel, power, booster and resolution come from OTP.
+let epd_bus = SpiBusWrapper::new(spi_device, dc_pin, rst_pin, busy_pin);
+let controller = Jd79676Controller::new(GDEY0213F52::WIDTH, GDEY0213F52::HEIGHT);
+
+// Build driver for the Good Display GDEY0213F52, 122x250. The rear sticker says F52. The
+// GDEY0213F51 has the same flex ribbon stamp but a JD79661, so it needs Jd79661Controller.
+let mut epd = EpdBuilder::<_, GDEY0213F52>::new(controller).build(epd_bus);
+
+epd.init(&mut delay).unwrap();
+
+// Send 2bpp packed QuadColor frame buffer: 128 px RAM width * 2 bits / 8 * 250 rows = 8,000 bytes
+epd.write_frame(ColorChannel::BlackWhite, &quad_color_frame_buf).unwrap();
+epd.refresh(&mut delay).unwrap(); // full refresh only, about 11 s per the datasheet
+epd.sleep(&mut delay).unwrap();
+```
+
+### 14. Usage Example (Ist7163Controller + GDEM037F51 Panel)
+
+```rust,ignore
+use epdsi::prelude::*;
+
+// Ist7163Controller is its own controller, not a Jd7966xVariant: PWR and BTST differ in length
+// from the JD79661 family and the init runs two test-mode register banks.
+let epd_bus = SpiBusWrapper::new(spi_device, dc_pin, rst_pin, busy_pin);
+let controller = Ist7163Controller::new(GDEM037F51::WIDTH, GDEM037F51::HEIGHT);
+
+// Build driver for the Good Display GDEM037F51 / Waveshare 3.7inch e-Paper (G), 240x416
+let mut epd = EpdBuilder::<_, GDEM037F51>::new(controller).build(epd_bus);
+
+epd.init(&mut delay).unwrap();
+
+// Send 2bpp packed QuadColor frame buffer: 240 px * 2 bits / 8 * 416 rows = 24,960 bytes
+epd.write_frame(ColorChannel::BlackWhite, &quad_color_frame_buf).unwrap();
+epd.refresh(&mut delay).unwrap(); // full refresh only, about 20 s
+epd.sleep(&mut delay).unwrap();
+```
+
 ## Examples on real hardware
 
 The snippets above are `rust,ignore` because they need real SPI and GPIO. For complete,
