@@ -35,8 +35,9 @@
 //! on RP2350 (blocking and async), RP2040 and ESP32-C3. They exercise `Full` and `Partial`, so the
 //! `0xF7` full and `0xDC` partial bytes are bench-confirmed. Measured on the Feather RP2040
 //! ThinkInk: `Full` 1191 ms and `Partial` 356 ms per update. The Pico 2 (RP2350) gives the same
-//! 1191 ms and 356 ms, and the XIAO ESP32-C3 is within 2 ms (1193 ms and 356-357 ms), so the time
-//! is set by the panel, not the host. Both are far
+//! 1191 ms and 356 ms blocking, and 1190 ms and 355 ms async. The XIAO ESP32-C3 is within 2 ms
+//! (1193 ms and 356-357 ms). Across all four runs the spread is under 3 ms, so the time is set by
+//! the panel, not the host or the blocking/async API. Both are far
 //! faster than the SSD1680 [`GDEY0266T90`](crate::panels::GDEY0266T90), which took about 4.1 s for
 //! both. `FastFull` is wired to the vendor's
 //! `6E 00` temperature override but no example runs it yet.
