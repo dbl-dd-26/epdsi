@@ -34,8 +34,10 @@
 //! hardware** (11 Oct 2026): the `GDEY0266T90H` examples ran and rendered correctly through `epdsi`
 //! on RP2350 (blocking and async), RP2040 and ESP32-C3. They exercise `Full` and `Partial`, so the
 //! `0xF7` full and `0xDC` partial bytes are bench-confirmed. Measured on the Feather RP2040
-//! ThinkInk: `Full` 1191 ms and `Partial` 356 ms per update, far faster than the SSD1680
-//! [`GDEY0266T90`](crate::panels::GDEY0266T90), which took about 4.1 s for both. `FastFull` is wired to the vendor's
+//! ThinkInk: `Full` 1191 ms and `Partial` 356 ms per update. The XIAO ESP32-C3 agrees to within
+//! 2 ms (1193 ms and 356-357 ms), so the time is set by the panel, not the host. Both are far
+//! faster than the SSD1680 [`GDEY0266T90`](crate::panels::GDEY0266T90), which took about 4.1 s for
+//! both. `FastFull` is wired to the vendor's
 //! `6E 00` temperature override but no example runs it yet.
 //!
 //! ### Vendor References
