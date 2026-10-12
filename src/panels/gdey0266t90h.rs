@@ -39,8 +39,11 @@
 //! (1193 ms and 356-357 ms). Across all four runs the spread is under 3 ms, so the time is set by
 //! the panel, not the host or the blocking/async API. Both are far
 //! faster than the SSD1680 [`GDEY0266T90`](crate::panels::GDEY0266T90), which took about 4.1 s for
-//! both. `FastFull` is wired to the vendor's
-//! `6E 00` temperature override but no example runs it yet.
+//! both. `FastFull` (the vendor's `6E 00`
+//! temperature override) measured 1678 ms against 1191 ms for `Full` on the Pico 2, the Feather
+//! RP2040 and the XIAO ESP32-C3 (1677 ms against 1190 ms async), so it is slower on this panel at
+//! room temperature, with no visible difference in image quality on any board. There is no reason
+//! to use it here. Stay on `Full`.
 //!
 //! ### Vendor References
 //! - Good Display product page: <https://www.good-display.com/product/501.html>

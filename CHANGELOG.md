@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Documented that `Ssd168xRefreshMode::FastFull` is slower than `Full` on the `GDEY0266T90H`:
+  1678 ms against 1191 ms on the Pico 2, the Feather RP2040 and the XIAO ESP32-C3 at room
+  temperature (1677 against 1190 async), with no visible difference in image quality on any
+  board. The vendor labels it 1.5 s. Stay on `Full` for that panel. No behaviour change.
+
 ## [0.8.0] - 2026-10-11
 
 ### Added

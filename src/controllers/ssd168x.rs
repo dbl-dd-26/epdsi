@@ -98,7 +98,7 @@ pub enum Ssd168xVariant {
     /// | :--- | :--- | :--- |
     /// | `Full` | `0xF7` | datasheet-listed sequence; vendor demo uses `0xF4` (see [`Ssd168xRefreshMode::BaseMap`]) |
     /// | `Partial` | `0xDC` | GxEPD2 `GxEPD2_290_GDEY029T71H::_Update_Part`; vendor demo sends a bare `0x1C` |
-    /// | `FastFull` | `0xC7` after a `0x1A = 6E 00` temperature override | vendor `EPD_HW_Init_Fast` (the SSD1680 path uses `5A 00`) |
+    /// | `FastFull` | `0xC7` after a `0x1A = 6E 00` temperature override | vendor `EPD_HW_Init_Fast` (the SSD1680 path uses `5A 00`); measured **slower** than `Full` on `GDEY0266T90H` |
     ///
     /// Selecting this variant for an SSD1680/SSD1681 panel, or the reverse, does not error: it
     /// sends the wrong refresh bytes. Pair it only with SSD1685 glass.
@@ -142,6 +142,10 @@ pub enum Ssd168xRefreshMode {
     /// Same controller, same resolution, different waveform. A colour panel will not approach the
     /// sub-second figures a monochrome SSD168x panel reaches in this mode either way, because the
     /// red pigment has no differential waveform to skip.
+    ///
+    /// It can also be slower. On a `GDEY0266T90H` (SSD1685) it measured 1678 ms against 1191 ms
+    /// for [`Ssd168xRefreshMode::Full`] at room temperature with no visible quality difference, so
+    /// that panel is better left on `Full`.
     FastFull,
     /// Differential base-map load (`UPDATE_DISPLAY_CTRL2 = 0xF4`), priming the controller's "old"
     /// frame buffer before a run of [`Ssd168xRefreshMode::Partial`] updates.
