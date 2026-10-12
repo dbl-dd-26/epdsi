@@ -87,6 +87,10 @@ pub mod cmd {
 }
 
 /// JD7966x IC variant family.
+///
+/// This enum is `#[non_exhaustive]`: a new IC is added in a patch release, so a `match` outside
+/// this crate needs a wildcard arm. Constructing a variant is unaffected.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Jd7966xVariant {

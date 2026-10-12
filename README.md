@@ -139,7 +139,7 @@ Add `epdsi` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-epdsi = "0.7"
+epdsi = "0.8"
 embedded-graphics = "0.8"
 ```
 
@@ -605,7 +605,7 @@ to it:
 
 ```toml
 [dependencies]
-epdsi = { version = "0.7", default-features = false }
+epdsi = { version = "0.8", default-features = false }
 embedded-hal = "1.0"
 embedded-hal-async = "1.0"
 maybe-async-cfg = "0.2"

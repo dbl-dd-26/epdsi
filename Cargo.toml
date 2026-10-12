@@ -1,6 +1,6 @@
 [package]
 name = "epdsi"
-version = "0.7.1"
+version = "0.8.0"
 edition = "2021"
 authors = ["Mariusz Jurgielewicz <mordor@mail.com>"]
 description = "no_std embedded-hal 1.0 compatible Rust driver framework, blocking or async, for Electronic Paper Displays (EPD): SSD1680, SSD1681, SSD1677, UC8253, JD79660, JD79661, JD79676, IST7163, ED2208, Pervasive Displays COG"
@@ -46,7 +46,7 @@ default = ["blocking", "graphics"]
 # Blocking `embedded-hal` 1.0 API (the default). Disabling this (via `default-features = false`)
 # switches every controller/bus/driver method to its `embedded-hal-async` counterpart instead —
 # the two APIs are mutually exclusive, not additive, so re-add `graphics` explicitly if wanted:
-# `epdsi = { version = "0.7", default-features = false, features = ["graphics"] }`.
+# `epdsi = { version = "0.8", default-features = false, features = ["graphics"] }`.
 blocking = []
 graphics = ["dep:embedded-graphics-core"]
 defmt = ["dep:defmt", "dep:thiserror"]

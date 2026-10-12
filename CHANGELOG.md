@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-11
+
+### Added
+
+- `Ssd168xVariant::Ssd1685` and the `GDEY0266T90H` panel (2.66" 184 x 360 Monochrome, Good
+  Display) for the SSD1685 IC. It fits the shared SSD168x flow, so it is a variant and not a new
+  controller. Init follows Good Display's `A32-GDEY0266T90H-2FP-20230915` demo and writes no
+  `0x21`, which leaves the OTP's 184-source selection alone (writing the power-on default
+  selects 200 sources and draws a noise strip). `Full` sends `0xF7`, `Partial` sends `0xDC` and
+  `FastFull` overrides the temperature register with `6E 00`. The vendor demo sends `0xF4` and a
+  bare `0x1C` for the first two; the reasons for the departures are in the variant's doc.
+  **Bench-confirmed** blocking on RP2350, RP2040 and ESP32-C3 and async on RP2350. Measured
+  `Full` 1190-1193 ms and `Partial` 355-357 ms on all four runs, against about 4.1 s for both on
+  the SSD1680 `GDEY0266T90`. `FastFull` is wired but not yet run on hardware. Two vendor-only
+  bytes are marked in the panel doc: the second `0x1A` parameter and the unwritten `0x3F`.
+- A section in the crate docs, "A shipped controller that differs by a few bytes", with a
+  compiled example of wrapping a shipped controller from your own crate. New checklist items:
+  registers the vendor demo leaves alone, the previous-image RAM plane, and trigger bytes that
+  rely on an earlier power-on.
+
+### Changed
+
+- `Ssd168xVariant` gained an `Ssd1685` variant. Code that matches on it exhaustively needs a new
+  arm, which is why this ships as 0.8.0.
+- `Ssd168xVariant`, `Jd7966xVariant`, `Uc8253Variant`, `Uc8253RefreshMode`,
+  `PervasiveDriverVariant` and `PervasiveBwryVariant` are now `#[non_exhaustive]`. A `match` on
+  one of them from another crate needs a wildcard arm. Constructing a variant is unaffected. New
+  ICs, panel profiles and the queued `Uc8253RefreshMode::Gray4` can now ship in patch releases.
+
 ## [0.7.1] - 2026-10-10
 
 ### Added
@@ -683,7 +712,8 @@ Initial release.
 - `no_std` builds verified against `thumbv6m-none-eabi`, `thumbv7em-none-eabihf`, and
   `riscv32imac-unknown-none-elf`.
 
-[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/melastmohican/epdsi/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/melastmohican/epdsi/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/melastmohican/epdsi/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/melastmohican/epdsi/compare/v0.6.1...v0.6.2

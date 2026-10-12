@@ -49,6 +49,10 @@ pub mod cmd {
 }
 
 /// Pervasive BWRY COG driver IC variant family.
+///
+/// This enum is `#[non_exhaustive]`: a new COG driver family is added in a patch release, so a `match` outside
+/// this crate needs a wildcard arm. Constructing a variant is unaffected.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PervasiveBwryVariant {

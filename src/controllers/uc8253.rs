@@ -66,6 +66,10 @@ const BUSY_ASSERT_TIMEOUT_MS: u32 = 500;
 /// differ enough that one profile cannot serve both. Selecting the wrong variant does not
 /// error — it renders inverted or blank — so the variant must match the panel type the
 /// [`crate::driver::EpdDriver`] is built with.
+///
+/// This enum is `#[non_exhaustive]`: a new panel profile is added in a patch release, so a `match` outside
+/// this crate needs a wildcard arm. Constructing a variant is unaffected.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Uc8253Variant {
@@ -96,6 +100,10 @@ pub enum Uc8253Variant {
 /// Display refresh operating mode for the UC8253 controller.
 ///
 /// Ignored by [`Uc8253Variant::Se0352n14`], which is full-refresh only.
+///
+/// This enum is `#[non_exhaustive]`: a new refresh mode is added in a patch release, so a `match` outside
+/// this crate needs a wildcard arm. Constructing a variant is unaffected.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Uc8253RefreshMode {
