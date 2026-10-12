@@ -325,6 +325,11 @@
 //! [`SpiBusWrapper`] (`hard_reset`, `send_command`, `send_command_with_data`,
 //! `send_data_repeated`, `wait_busy`) cover everything a register-level driver needs.
 //!
+//! You do not need variants. Variants such as [`Ssd168xVariant`] are how `epdsi`'s own controllers
+//! share code between related ICs, and nothing in [`EpdController`], [`EpdPanel`] or
+//! [`EpdBuilder`] refers to them. A driver for one IC is a single struct with its init bytes
+//! inline, as in the example below.
+//!
 //! The trait is declared through `maybe_async_cfg`, so its methods are plain functions in
 //! blocking mode and `async fn` in async mode. A crate outside `epdsi` has to follow the same
 //! switch. Give your crate a feature named exactly `blocking` that forwards to `epdsi`, and take
@@ -564,6 +569,7 @@
 //!
 //! [`Ssd168xController`]: controllers::Ssd168xController
 //! [`Ssd168xVariant::Ssd1685`]: controllers::Ssd168xVariant::Ssd1685
+//! [`Ssd168xVariant`]: controllers::Ssd168xVariant
 //! [`Ssd1680Controller`]: controllers::Ssd1680Controller
 //! [`Ssd1681Controller`]: controllers::Ssd1681Controller
 //! [`Ssd1677Controller`]: controllers::Ssd1677Controller
