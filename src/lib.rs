@@ -156,7 +156,8 @@
 //! | :--- | :--- | :--- |
 //! | A new panel on a driver IC `epdsi` already supports | an [`EpdPanel`], three constants | the shipped controller |
 //! | A driver IC `epdsi` does not support | an [`EpdController`] and an [`EpdPanel`] | [`SpiBusWrapper`], [`EpdBuilder`], paged rendering |
-//! | A shipped controller that needs a different init | a wrapper that delegates to it, as [`Jd79660Controller`] does over [`Jd7966xController`] | everything else |
+//! | A driver IC that is a near-sibling of a shipped one | in this crate, a variant on that controller, as [`Ssd168xVariant::Ssd1685`] is on [`Ssd168xController`] | everything else |
+//! | The same, from your own crate | a wrapper that holds the shipped controller and overrides only the methods that differ | the rest of its methods |
 //!
 //! ## A new panel on a shipped controller
 //!
@@ -181,6 +182,141 @@
 //! // `for_panel` reads WIDTH, HEIGHT and the optional overrides from the panel type.
 //! let _controller = Ssd1680Controller::for_panel::<MyPanel>();
 //! ```
+//!
+//! ## A shipped controller that differs by a few bytes
+//!
+//! Sometimes the new panel's IC is a sibling of one `epdsi` ships, with the same command set and
+//! a handful of different bytes. The SSD1685 behind the [`GDEY0266T90H`] was one. Next to the
+//! SSD1681 profile it differs only in the partial update byte (`0xDC` against `0xFC`) and the
+//! temperature override that `FastFull` writes (`6E 00` against `5A 00`). It did not need a new
+//! controller. It became [`Ssd168xVariant::Ssd1685`] and a panel file.
+//!
+//! Inside this crate that is the pattern: add a variant, branch on it where the bytes differ, and
+//! pin each difference in a test. Two things to know:
+//!
+//! - The controller never sees the panel type, so pairing a panel with the wrong variant does
+//!   not error. It sends the wrong bytes and renders badly. Name the pairing in the panel's
+//!   module doc and in the variant's doc.
+//! - Write the differences down as a table with the source of each byte: vendor demo,
+//!   datasheet, or another driver. The doc on [`Ssd168xVariant::Ssd1685`] is an example.
+//!
+//! From your own crate you cannot add a variant to someone else's enum. Hold the shipped
+//! controller instead, override the methods whose bytes differ, and delegate the rest. This one
+//! reuses the SSD1681 profile and changes only the partial update trigger:
+//!
+//! ```rust
+//! # #[cfg(feature = "blocking")]
+//! # use embedded_hal::delay::DelayNs;
+//! # #[cfg(not(feature = "blocking"))]
+//! # use embedded_hal_async::delay::DelayNs;
+//! # #[cfg(feature = "blocking")]
+//! # use embedded_hal::spi::SpiDevice;
+//! # #[cfg(not(feature = "blocking"))]
+//! # use embedded_hal_async::spi::SpiDevice;
+//! # use embedded_hal::digital::{InputPin, OutputPin};
+//! # #[cfg(feature = "blocking")]
+//! # use embedded_hal::digital::InputPin as Wait;
+//! # #[cfg(not(feature = "blocking"))]
+//! # use embedded_hal_async::digital::Wait;
+//! use epdsi::bus::{EpdBusError, SpiBusWrapper};
+//! use epdsi::controllers::{Ssd168xController, Ssd168xRefreshMode};
+//! use epdsi::traits::{ColorChannel, EpdController};
+//!
+//! /// An SSD1681 sibling whose partial update byte is `0xDC`.
+//! pub struct MySibling {
+//!     inner: Ssd168xController,
+//! }
+//!
+//! #[maybe_async_cfg::maybe(
+//!     sync(feature = "blocking", keep_self),
+//!     async(not(feature = "blocking"), keep_self)
+//! )]
+//! impl<SPI, DC, RST, BUSY> EpdController<SpiBusWrapper<SPI, DC, RST, BUSY>> for MySibling
+//! where
+//!     SPI: SpiDevice,
+//!     DC: OutputPin,
+//!     RST: OutputPin,
+//!     BUSY: InputPin + Wait,
+//! {
+//!     type Error = EpdBusError<SPI::Error, DC::Error, RST::Error, BUSY::Error>;
+//!
+//!     async fn init_sequence<DELAY: DelayNs>(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         delay: &mut DELAY,
+//!     ) -> Result<(), Self::Error> {
+//!         self.inner.init_sequence(bus, delay).await
+//!     }
+//!
+//!     async fn set_window(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         x_start: u32,
+//!         y_start: u32,
+//!         x_end: u32,
+//!         y_end: u32,
+//!     ) -> Result<(), Self::Error> {
+//!         self.inner.set_window(bus, x_start, y_start, x_end, y_end).await
+//!     }
+//!
+//!     async fn set_cursor(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         x: u32,
+//!         y: u32,
+//!     ) -> Result<(), Self::Error> {
+//!         self.inner.set_cursor(bus, x, y).await
+//!     }
+//!
+//!     async fn write_frame(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         channel: ColorChannel,
+//!         data: &[u8],
+//!     ) -> Result<(), Self::Error> {
+//!         self.inner.write_frame(bus, channel, data).await
+//!     }
+//!
+//!     async fn write_frame_pattern(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         channel: ColorChannel,
+//!         byte: u8,
+//!         count: usize,
+//!     ) -> Result<(), Self::Error> {
+//!         self.inner.write_frame_pattern(bus, channel, byte, count).await
+//!     }
+//!
+//!     async fn trigger_refresh<DELAY: DelayNs>(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         delay: &mut DELAY,
+//!     ) -> Result<(), Self::Error> {
+//!         if self.inner.refresh_mode() == Ssd168xRefreshMode::Partial {
+//!             // The only bytes this IC changes: the shipped SSD1681 profile sends `0xFC` here.
+//!             bus.send_command_with_data(0x22, &[0xDC]).await?;
+//!             bus.send_command(0x20).await?;
+//!             bus.wait_busy(true).await
+//!         } else {
+//!             self.inner.trigger_refresh(bus, delay).await
+//!         }
+//!     }
+//!
+//!     async fn sleep<DELAY: DelayNs>(
+//!         &mut self,
+//!         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+//!         delay: &mut DELAY,
+//!     ) -> Result<(), Self::Error> {
+//!         self.inner.sleep(bus, delay).await
+//!     }
+//! }
+//!
+//! // Build the inner controller as you would for the shipped IC, then wrap it:
+//! // `MySibling { inner: Ssd168xController::new_ssd1681(184, 360)
+//! //     .with_refresh_mode(Ssd168xRefreshMode::Partial) }`
+//! ```
+//!
+//! The same `blocking` feature rule applies as for a full controller below.
 //!
 //! ## Your own controller
 //!
@@ -343,7 +479,17 @@
 //! - **Pixel packing and RAM stride.** Know bits per pixel, which bit is the first pixel, and
 //!   whether the row is padded to a byte or to four pixels.
 //! - **Power sequence.** Some controllers drop their charge pump after a refresh, so a bare
-//!   refresh command is silently ignored until `PON` is sent again.
+//!   refresh command is silently ignored until `PON` is sent again. The reverse also happens:
+//!   a vendor demo's bare `0x1C` partial trigger has no power-on bits and only works because the
+//!   demo always runs a full update first. As the first update after init it would do nothing.
+//! - **Registers the demo leaves alone.** If the vendor demo never writes a register, do not
+//!   write it either. The panel's OTP may already have set it, and your write replaces that
+//!   value. Writing the SSD1685's source-count register with its power-on default selected 200
+//!   sources on a 184-source panel and drew a noise strip down one edge.
+//! - **The previous-image plane.** Many monochrome controllers keep a second RAM plane as the
+//!   "previous frame" for differential updates. Check what the demo writes there before a full
+//!   update (the SSD1685 demo writes `0x00`) and what it copies in afterwards. The order
+//!   decides whether the next partial update diffs against the right base.
 //! - **Sleep.** Deep sleep usually wakes only through a hardware reset, so `init_sequence`
 //!   must start with one.
 //!
@@ -363,8 +509,9 @@
 //! takes.
 //!
 //! If your panel fits that, open an issue with the part number, the vendor demo and the
-//! datasheet. Adding it means a file under `src/controllers/` or `src/panels/`, byte-exact
-//! tests, and a hardware example for blocking and async. Your own crate keeps working in the
+//! datasheet. Adding it means a panel file under `src/panels/`, plus either a new file under
+//! `src/controllers/` or a variant on the nearest shipped controller, then byte-exact tests and
+//! a hardware example for blocking and async. Your own crate keeps working in the
 //! meantime.
 //!
 //! # Cargo features

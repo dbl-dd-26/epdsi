@@ -596,7 +596,8 @@ plug into `EpdBuilder` like the shipped ones:
   VCOM, LUT and gate voltage) and reuse the shipped controller.
 - **A driver IC `epdsi` does not support:** implement `EpdController` (seven methods) and
   `EpdPanel`.
-- **A shipped controller that needs a different init:** write a wrapper that delegates to it.
+- **A near-sibling of a shipped IC:** hold the shipped controller in a wrapper, override only the
+  methods whose bytes differ, and delegate the rest. The crate docs have a worked example.
 
 The one thing that trips people up is that `EpdController` is sync or async depending on
 `epdsi`'s `blocking` feature. Your crate needs a feature named exactly `blocking` that forwards
