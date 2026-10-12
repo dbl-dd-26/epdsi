@@ -38,6 +38,7 @@
 //! | :--- | :--- | :--- | :--- |
 //! | [`Ssd1681Controller`] | [`GDEM0154Z90`] | 200 × 200 | Tri-Color |
 //! | [`Ssd1680Controller`] | [`GDEM0213B74`], [`GDEY0266Z90`], [`GDEY0266T90`] | 122 × 250, 152 × 296, 152 × 296 | Monochrome, Tri-Color |
+//! | [`Ssd168xController`] with [`Ssd168xVariant::Ssd1685`] | [`GDEY0266T90H`] | 184 × 360 | Monochrome |
 //! | [`Jd79661Controller`] | [`ZJY122250_0213AJH_E5`] / [`GDEY0213F51`] | 122 × 250 | Quad-Color |
 //! | [`Jd79676Controller`] | [`GDEY0213F52`] | 122 × 250 | Quad-Color |
 //! | [`Ist7163Controller`] | [`GDEM037F51`] | 240 × 416 | Quad-Color |
@@ -415,6 +416,7 @@
 //! The minimum supported Rust version is 1.75.
 //!
 //! [`Ssd168xController`]: controllers::Ssd168xController
+//! [`Ssd168xVariant::Ssd1685`]: controllers::Ssd168xVariant::Ssd1685
 //! [`Ssd1680Controller`]: controllers::Ssd1680Controller
 //! [`Ssd1681Controller`]: controllers::Ssd1681Controller
 //! [`Ssd1677Controller`]: controllers::Ssd1677Controller
@@ -431,6 +433,7 @@
 //! [`GDEM0213B74`]: panels::GDEM0213B74
 //! [`GDEY0266Z90`]: panels::GDEY0266Z90
 //! [`GDEY0266T90`]: panels::GDEY0266T90
+//! [`GDEY0266T90H`]: panels::GDEY0266T90H
 //! [`ZJY122250_0213AJH_E5`]: panels::ZJY122250_0213AJH_E5
 //! [`GDEY0213F51`]: panels::GDEY0213F51
 //! [`GDEY0213F52`]: panels::GDEY0213F52

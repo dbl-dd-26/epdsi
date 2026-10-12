@@ -1,4 +1,4 @@
-//! SSD168x (SSD1680 & SSD1681) E-Paper Display Controller implementation.
+//! SSD168x (SSD1680, SSD1681 & SSD1685) E-Paper Display Controller implementation.
 
 #[cfg(feature = "blocking")]
 use embedded_hal::delay::DelayNs;
@@ -84,6 +84,21 @@ pub enum Ssd168xVariant {
     Ssd1680,
     /// SSD1681 IC variant (supports 200×200 RAM space, uses direct display update trigger 0xF7/0xFC).
     Ssd1681,
+    /// SSD1685 IC variant (168/184/200/216 × 384 RAM space, resolution selected by `0x21` byte 2
+    /// bits 7-6 and otherwise left to the panel's OTP).
+    ///
+    /// Paired with [`GDEY0266T90H`](crate::panels::GDEY0266T90H). Like [`Ssd168xVariant::Ssd1681`]
+    /// it writes no `0x21` and no explicit power envelope, but its refresh bytes differ:
+    ///
+    /// | Mode | Byte | Source |
+    /// | :--- | :--- | :--- |
+    /// | `Full` | `0xF7` | datasheet-listed sequence; vendor demo uses `0xF4` (see [`Ssd168xRefreshMode::BaseMap`]) |
+    /// | `Partial` | `0xDC` | GxEPD2 `GxEPD2_290_GDEY029T71H::_Update_Part`; vendor demo sends a bare `0x1C` |
+    /// | `FastFull` | `0xC7` after a `0x1A = 6E 00` temperature override | vendor `EPD_HW_Init_Fast` (the SSD1680 path uses `5A 00`) |
+    ///
+    /// Selecting this variant for an SSD1680/SSD1681 panel, or the reverse, does not error: it
+    /// sends the wrong refresh bytes. Pair it only with SSD1685 glass.
+    Ssd1685,
 }
 
 /// Display refresh operating mode for SSD168x controllers.
@@ -423,6 +438,11 @@ impl Ssd168xController {
             custom_lut: None,
             gray4: None,
         }
+    }
+
+    /// Creates a new SSD1685 controller instance configured for target display dimensions.
+    pub fn new_ssd1685(width: u32, height: u32) -> Self {
+        Self::new(width, height, Ssd168xVariant::Ssd1685)
     }
 
     /// Creates a new SSD168x controller with target dimensions and variant.
@@ -920,7 +940,13 @@ where
             delay.delay_ms(1).await;
             bus.wait_busy_with_delay(delay, true).await?;
 
-            bus.send_command_with_data(cmd::WRITE_TEMP_REG, &[0x5A, 0x00])
+            // Good Display's `EPD_HW_Init_Fast()` for the SSD1685 `GDEY0266T90H` writes `6E 00`
+            // (110 °C); the SSD1680 demos write `5A 00` (90 °C).
+            let fast_temperature = match self.variant {
+                Ssd168xVariant::Ssd1685 => 0x6E,
+                Ssd168xVariant::Ssd1680 | Ssd168xVariant::Ssd1681 => 0x5A,
+            };
+            bus.send_command_with_data(cmd::WRITE_TEMP_REG, &[fast_temperature, 0x00])
                 .await?;
 
             bus.send_command_with_data(cmd::UPDATE_DISPLAY_CTRL2, &[0x91])
@@ -940,6 +966,12 @@ where
             Ssd168xRefreshMode::Partial => match self.variant {
                 Ssd168xVariant::Ssd1680 => 0xFF,
                 Ssd168xVariant::Ssd1681 => 0xFC,
+                // GxEPD2's SSD1685 driver (`GxEPD2_290_GDEY029T71H::_Update_Part`). Good
+                // Display's `GDEY0266T90H` demo sends a bare `0x1C`, which has no clock/analog
+                // enable bits and only works because its demo always runs a `0xF4` base-map
+                // update first. `0xDC` is `0x1C` plus those enables, so it also works as the
+                // first update after init.
+                Ssd168xVariant::Ssd1685 => 0xDC,
             },
             Ssd168xRefreshMode::FastFull => 0xC7,
             Ssd168xRefreshMode::BaseMap => 0xF4,
@@ -990,7 +1022,7 @@ where
                 delay.delay_ms(1).await;
                 bus.wait_busy_with_delay(delay, true).await
             }
-            Ssd168xVariant::Ssd1681 => {
+            Ssd168xVariant::Ssd1681 | Ssd168xVariant::Ssd1685 => {
                 bus.send_command_with_data(cmd::UPDATE_DISPLAY_CTRL2, &[mode_byte])
                     .await?;
                 bus.send_command(cmd::MASTER_ACTIVATE).await?;
