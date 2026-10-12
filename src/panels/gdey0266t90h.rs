@@ -30,8 +30,13 @@
 //!   writes it.
 //!
 //! ### Status
-//! Register sequence derived from the vendor demo and datasheet above. Not yet run through
-//! `epdsi` on hardware. See the backlog item 2c for the bench checklist.
+//! Register sequence derived from the vendor demo and datasheet above. **Confirmed on physical
+//! hardware** (11 Oct 2026): the `GDEY0266T90H` examples ran and rendered correctly through `epdsi`
+//! on RP2350 (blocking and async), RP2040 and ESP32-C3. They exercise `Full` and `Partial`, so the
+//! `0xF7` full and `0xDC` partial bytes are bench-confirmed. Measured on the Feather RP2040
+//! ThinkInk: `Full` 1191 ms and `Partial` 356 ms per update, far faster than the SSD1680
+//! [`GDEY0266T90`](crate::panels::GDEY0266T90), which took about 4.1 s for both. `FastFull` is wired to the vendor's
+//! `6E 00` temperature override but no example runs it yet.
 //!
 //! ### Vendor References
 //! - Good Display product page: <https://www.good-display.com/product/501.html>
