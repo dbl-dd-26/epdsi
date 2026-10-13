@@ -716,3 +716,32 @@ epd_test!(
     test_pervasive_bwry_driver_a_sleep_has_5s_delay_before_psr_resend,
     pervasive_bwry_driver_a_sleep_has_5s_delay_before_psr_resend_body
 );
+
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn spi3bus_read_jd7966x_revision_body() {
+    // Values seen on three real `GDEY0213F52`/`ZJY122250` units: R70H returns three bytes.
+    let state = MockState::new(&[0x89, 0x02, 0x01]);
+    let mut bus = make_bus(&state);
+    let mut delay = DummyDelay;
+
+    let revision = bus.read_jd7966x_revision(&mut delay).await.unwrap();
+
+    assert_eq!(revision, [0x89, 0x02, 0x01]);
+    // One command byte (`0x70`, DC low), then three data reads (DC high), in that order.
+    assert_eq!(
+        state.events.borrow().clone(),
+        vec![
+            Event::cmd(0x70),
+            Event::read(0x89),
+            Event::read(0x02),
+            Event::read(0x01),
+        ]
+    );
+}
+epd_test!(
+    test_spi3bus_read_jd7966x_revision,
+    spi3bus_read_jd7966x_revision_body
+);

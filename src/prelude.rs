@@ -4,7 +4,7 @@ pub use crate::bus::{EpdBusError, SpiBusWrapper};
 pub use crate::bus3::{DynamicPin, Spi3Bus, Spi3BusError};
 pub use crate::controllers::{
     Ed2208Controller, Ist7163Controller, Jd79660Controller, Jd79661Controller, Jd7966xController,
-    Jd7966xVariant,
+    Jd7966xRefreshMode, Jd7966xVariant,
     Jd79676Controller, PervasiveBwController, PervasiveBwryController, PervasiveBwryOtpError,
     PervasiveBwryVariant, PervasiveDriverVariant, PervasiveRefreshMode, Ssd1677Controller,
     Ssd1677RefreshMode, Ssd1680Controller, Ssd1680RefreshMode, Ssd1681Controller,

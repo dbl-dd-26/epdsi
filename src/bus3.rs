@@ -241,6 +241,39 @@ where
         Ok(value)
     }
 
+    /// Reads the `R70H` REVISION register of a JD7966x-family IC (JD79660, JD79661, JD79676):
+    /// command `0x70`, then three data bytes, each framed by its own CS pulse.
+    ///
+    /// The caller resets the panel first, with the vendor demo's timings for that panel, and
+    /// leaves it unpowered: this method does not reset the panel and never sends `PON`, so it
+    /// cannot change what the panel is showing. The bus must be built on the same wires the
+    /// hardware SPI uses (SCK and MOSI), with the DATA pin released back to SPI afterwards.
+    ///
+    /// Observed values: `09 02 01` on a Seeed `0213SW-F52-B2` unit, `89 02 01` on a Good Display
+    /// `GDEY0213F52` unit and `09 01 01` on an Adafruit `ZJY122250-0213EAH-E5` unit (12 Oct 2026).
+    /// The JD79676AA datasheet lists `09 02 01` and the JD79661AA datasheet `03 02 01`, which has
+    /// not been seen on any unit. Treat the bytes as a way to tell units apart, not as a
+    /// confirmed IC identifier. `FF FF FF` or `00 00 00` means the read path did not reach the IC.
+    pub async fn read_jd7966x_revision<DELAY: DelayNs>(
+        &mut self,
+        delay: &mut DELAY,
+    ) -> Spi3BusResult<
+        CS::Error,
+        SCK::Error,
+        DATA::Error,
+        DC::Error,
+        RST::Error,
+        BUSY::Error,
+        [u8; 3],
+    > {
+        self.write_cmd(delay, 0x70).await?;
+        let mut revision = [0u8; 3];
+        for byte in revision.iter_mut() {
+            *byte = self.read_data_byte(delay).await?;
+        }
+        Ok(revision)
+    }
+
     /// Reads a single byte (DC left as previously set), bracketed by its own CS select/unselect
     /// pulse, without touching DC — used for the bulk OTP-populate loop where DC is already HIGH
     /// and the reference driver never re-sets it per byte.

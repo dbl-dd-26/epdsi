@@ -23,6 +23,10 @@
 //! where JD79661AA uses `10`. A bench run on a `GDEY0213F52` drew correctly under the JD79661
 //! init as well, so the OTP-only init is chosen for parity with the vendor demo.
 //!
+//! [`Jd7966xRefreshMode::Fast`] switches the JD79676 init to the demo's `EPD_init_Fast()`
+//! (`0xE0 0x02`, `0xE6 0x5A`, a bare `0xA5`, then `0xE9 0x01` and `PON`). It is opt-in because
+//! `0xE6` and the bare `0xA5` are not in the public datasheet. JD79660 and JD79661 ignore it.
+//!
 //! `0x4D`, `0xE7`, `0xE3`, `0xB4` and `0xB5` are vendor registers **not documented in either
 //! public datasheet** — the same class of undocumented-but-real register as the SSD1680 `0x3F`
 //! "Option for LUT end" precedent — sourced only from the Waveshare/Adafruit reference drivers.
@@ -108,12 +112,44 @@ pub enum Jd7966xVariant {
     Jd79676,
 }
 
+/// Refresh behaviour for [`Jd7966xController`].
+///
+/// Only [`Jd7966xVariant::Jd79676`] acts on it. The JD79660 and JD79661 variants ignore it and
+/// always run their plain init, since neither has a fast init that agrees across its references.
+///
+/// This enum is `#[non_exhaustive]`: a new mode is added in a patch release, so a `match` outside
+/// this crate needs a wildcard arm. Constructing a variant is unaffected.
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Jd7966xRefreshMode {
+    /// Plain init from Good Display's `EPD_init()`: `0xE9 0x01`, then `PON`. About 15.9 s on
+    /// `GDEY0213F52`.
+    #[default]
+    Full,
+    /// Good Display's `EPD_init_Fast()` from the `GDEY0213F52` V2.0 demo: `0xE0 0x02`
+    /// (`CCSET`, `TSFIX`), `0xE6 0x5A`, a bare `0xA5`, then `0xE9 0x01` and `PON`. About 10.9 s
+    /// on `GDEY0213F52`, measured on two units.
+    ///
+    /// `0xE6` and the bare `0xA5` are not in the JD79676AA V1.0.4 datasheet. The `0xE0 0x02`
+    /// bit says to take the temperature from `TS_SET`, so `0x5A` (90) is most likely a fixed
+    /// temperature that selects a shorter waveform. That is an inference. Colours were clean
+    /// with no visible ghosting at room temperature on a Good Display unit (lot `N5B3S02`) and a
+    /// Seeed unit (lot `NRA2L21`). Behaviour in a cold or hot room has not been tested.
+    ///
+    /// On an Adafruit `ZJY122250` unit (`R70H` `09 01 01`) driven through the `Jd79676` variant,
+    /// the plain init drew the panel in 20376 ms and `Fast` took 20546 ms, so the mode gives no
+    /// speed-up there. It is an `F52` feature, not a JD79661-family one.
+    Fast,
+}
+
 /// Generic JD7966x (JD79660AA / JD79661AA) Controller IC driver implementation.
 #[derive(Debug, Clone, Copy)]
 pub struct Jd7966xController {
     width: u32,
     height: u32,
     variant: Jd7966xVariant,
+    refresh_mode: Jd7966xRefreshMode,
 }
 
 /// Dedicated controller for the JD79660AA IC (`GDEM0154F51H`).
@@ -159,6 +195,22 @@ impl Jd79676Controller {
             inner: Jd7966xController::new_jd79676(width, height),
         }
     }
+
+    /// Sets the refresh mode (builder method). See [`Jd7966xRefreshMode`].
+    pub fn with_refresh_mode(mut self, mode: Jd7966xRefreshMode) -> Self {
+        self.inner.refresh_mode = mode;
+        self
+    }
+
+    /// Sets the refresh mode. See [`Jd7966xRefreshMode`].
+    pub fn set_refresh_mode(&mut self, mode: Jd7966xRefreshMode) {
+        self.inner.refresh_mode = mode;
+    }
+
+    /// Returns the configured refresh mode.
+    pub fn refresh_mode(&self) -> Jd7966xRefreshMode {
+        self.inner.refresh_mode
+    }
 }
 
 impl Jd7966xController {
@@ -168,6 +220,7 @@ impl Jd7966xController {
             width,
             height,
             variant: Jd7966xVariant::Jd79660,
+            refresh_mode: Jd7966xRefreshMode::Full,
         }
     }
 
@@ -177,6 +230,7 @@ impl Jd7966xController {
             width,
             height,
             variant: Jd7966xVariant::Jd79661,
+            refresh_mode: Jd7966xRefreshMode::Full,
         }
     }
 
@@ -186,6 +240,7 @@ impl Jd7966xController {
             width,
             height,
             variant: Jd7966xVariant::Jd79676,
+            refresh_mode: Jd7966xRefreshMode::Full,
         }
     }
 
@@ -195,7 +250,24 @@ impl Jd7966xController {
             width,
             height,
             variant,
+            refresh_mode: Jd7966xRefreshMode::Full,
         }
+    }
+
+    /// Sets the refresh mode (builder method). See [`Jd7966xRefreshMode`].
+    pub fn with_refresh_mode(mut self, mode: Jd7966xRefreshMode) -> Self {
+        self.refresh_mode = mode;
+        self
+    }
+
+    /// Sets the refresh mode. See [`Jd7966xRefreshMode`].
+    pub fn set_refresh_mode(&mut self, mode: Jd7966xRefreshMode) {
+        self.refresh_mode = mode;
+    }
+
+    /// Returns the configured refresh mode.
+    pub fn refresh_mode(&self) -> Jd7966xRefreshMode {
+        self.refresh_mode
     }
 }
 
@@ -218,7 +290,14 @@ where
         delay: &mut DELAY,
     ) -> Result<(), Self::Error> {
         // Hardware reset sequence. Busy is active-low on all variants: busy when LOW.
-        if self.variant == Jd7966xVariant::Jd79676 {
+        let fast = self.variant == Jd7966xVariant::Jd79676
+            && self.refresh_mode == Jd7966xRefreshMode::Fast;
+        if fast {
+            // Good Display's `GDEY0213F52` demo (`EPD_init_Fast()`): at least 100 ms before reset,
+            // then at least 10 ms low and 10 ms high.
+            delay.delay_ms(100).await;
+            bus.hard_reset(delay, 10).await?;
+        } else if self.variant == Jd7966xVariant::Jd79676 {
             // Good Display's `GDEY0213F52` demo (`EPD_init()`): at least 20 ms before reset, at
             // least 40 ms low and at least 50 ms high. `hard_reset` uses one duration for both
             // phases, so 50 ms covers both minimums.
@@ -312,9 +391,18 @@ where
                     .await?;
             }
             Jd7966xVariant::Jd79676 => {
+                if fast {
+                    // `EPD_init_Fast()`: CCSET `TSFIX`, then `0xE6 0x5A` and a bare `0xA5`,
+                    // both undocumented in the public datasheet. The demo waits for BUSY after
+                    // the `0xA5`, which the bench measured at about 10 ms.
+                    bus.send_command_with_data(0xE0, &[0x02]).await?;
+                    bus.send_command_with_data(0xE6, &[0x5A]).await?;
+                    bus.send_command(0xA5).await?;
+                    bus.wait_busy(false).await?;
+                }
                 // Panel, power, booster, CDI and resolution all come from OTP (datasheet default
                 // RES is 128x250). `0xE9` is undocumented in the public datasheet and is the
-                // only register the vendor demo writes before PON.
+                // only register the vendor demo writes before PON in its plain init.
                 bus.send_command_with_data(0xE9, &[0x01]).await?;
             }
         }
