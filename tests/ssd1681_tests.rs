@@ -13,6 +13,13 @@ mod support;
 use support::*;
 
 #[test]
+fn test_ssd1681_gxepd2_154_z90c_alias_matches_gdem0154z90() {
+    assert_eq!(GxEPD2_154_Z90c::WIDTH, GDEM0154Z90::WIDTH);
+    assert_eq!(GxEPD2_154_Z90c::HEIGHT, GDEM0154Z90::HEIGHT);
+    assert_eq!(GxEPD2_154_Z90c::COLOR_MODE, GDEM0154Z90::COLOR_MODE);
+}
+
+#[test]
 fn test_ssd1681_gdem0154z90_panel_dimensions() {
     assert_eq!(GDEM0154Z90::WIDTH, 200);
     assert_eq!(GDEM0154Z90::HEIGHT, 200);

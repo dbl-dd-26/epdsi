@@ -17,6 +17,12 @@ use crate::traits::{ColorMode, EpdPanel};
 #[derive(Debug, Clone, Copy, Default)]
 pub struct GDEM0154Z90;
 
+/// GxEPD2 reference alias for this panel (`GxEPD2_154_Z90c`). GxEPD2 labels the glass `GDEH0154Z90`
+/// in its panel enum, a different Good Display part number than `GDEM0154Z90`, so this alias names
+/// the GxEPD2 driver class `epdsi` was audited against, not a part-number match.
+#[allow(non_camel_case_types)]
+pub type GxEPD2_154_Z90c = GDEM0154Z90;
+
 impl EpdPanel for GDEM0154Z90 {
     const WIDTH: u32 = 200;
     const HEIGHT: u32 = 200;

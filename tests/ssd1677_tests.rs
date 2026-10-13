@@ -9,6 +9,13 @@ mod support;
 use support::*;
 
 #[test]
+fn test_ssd1677_gxepd2_426_gdeq0426t82_alias_matches_gdeq0426t82() {
+    assert_eq!(GxEPD2_426_GDEQ0426T82::WIDTH, GDEQ0426T82::WIDTH);
+    assert_eq!(GxEPD2_426_GDEQ0426T82::HEIGHT, GDEQ0426T82::HEIGHT);
+    assert_eq!(GxEPD2_426_GDEQ0426T82::COLOR_MODE, GDEQ0426T82::COLOR_MODE);
+}
+
+#[test]
 fn test_ssd1677_gdeq0426t82_panel_dimensions() {
     assert_eq!(GDEQ0426T82::WIDTH, 800);
     assert_eq!(GDEQ0426T82::HEIGHT, 480);

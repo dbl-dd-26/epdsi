@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- GxEPD2 reference aliases for three panels that had none: `GxEPD2_154_Z90c` for
+  `GDEM0154Z90`, `GxEPD2_426_GDEQ0426T82` for `GDEQ0426T82`, and `GxEPD2_213c_GDEY0213F51` for
+  `ZJY122250_0213AJH_E5` / `GDEY0213F51`. They are type aliases re-exported from `panels` and the
+  prelude, so there is no behavior change. GxEPD2 labels the `GxEPD2_154_Z90c` glass
+  `GDEH0154Z90`, a different Good Display part number, so that alias names the driver class
+  `epdsi` was audited against and does not claim a part-number match.
+
+### Documentation
+
+- Corrected parity claims found in the 13 Oct 2026 audit: the `GDEY0266T90` header no longer says
+  its refresh bytes match GxEPD2 byte for byte (they follow Good Display's demo), the `Uc8253`
+  comments now say Waveshare re-runs init per operation only in its Arduino sketches, and the
+  `GDEM0213B74` and `GDEY037T03` headers note that Adafruit's part naming is not proven to be the
+  same glass.
+
 ## [0.8.1] - 2026-10-12
 
 ### Added

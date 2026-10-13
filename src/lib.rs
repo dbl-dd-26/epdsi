@@ -36,15 +36,15 @@
 //!
 //! | Controller | Panels | Resolution | Colour mode |
 //! | :--- | :--- | :--- | :--- |
-//! | [`Ssd1681Controller`] | [`GDEM0154Z90`] | 200 × 200 | Tri-Color |
+//! | [`Ssd1681Controller`] | [`GDEM0154Z90`] / [`GxEPD2_154_Z90c`] | 200 × 200 | Tri-Color |
 //! | [`Ssd1680Controller`] | [`GDEM0213B74`], [`GDEY0266Z90`], [`GDEY0266T90`] | 122 × 250, 152 × 296, 152 × 296 | Monochrome, Tri-Color |
 //! | [`Ssd168xController`] with [`Ssd168xVariant::Ssd1685`] | [`GDEY0266T90H`] | 184 × 360 | Monochrome |
-//! | [`Jd79661Controller`] | [`ZJY122250_0213AJH_E5`] / [`GDEY0213F51`] | 122 × 250 | Quad-Color |
+//! | [`Jd79661Controller`] | [`ZJY122250_0213AJH_E5`] / [`GDEY0213F51`] / [`GxEPD2_213c_GDEY0213F51`] | 122 × 250 | Quad-Color |
 //! | [`Jd79676Controller`] | [`GDEY0213F52`] | 122 × 250 | Quad-Color |
 //! | [`Ist7163Controller`] | [`GDEM037F51`] | 240 × 416 | Quad-Color |
 //! | [`Jd79660Controller`] | [`GDEM0154F51H`] / [`GxEPD2_154c_GDEM0154F51H`] | 200 × 200 | Quad-Color |
 //! | [`Uc8253Controller`] | [`GDEY037T03`], [`SE0352N14TNGA0`] | 240 × 416, 240 × 360 | Monochrome, Tri-Color |
-//! | [`Ssd1677Controller`] | [`GDEQ0426T82`] | 800 × 480 | Monochrome |
+//! | [`Ssd1677Controller`] | [`GDEQ0426T82`] / [`GxEPD2_426_GDEQ0426T82`] | 800 × 480 | Monochrome |
 //! | [`Ed2208Controller`] | [`GDEP073E01`] | 800 × 480 | Spectra 6 (4 bpp) |
 //! | [`PervasiveBwController`] | [`E2266KS0C1`], [`E2290KS0F1`] | 152 × 296, 168 × 384 | Monochrome |
 //! | [`PervasiveBwryController`] | [`E2154QS0F1`], [`E2417QS0A3`] | 152 × 152, 400 × 300 | Quad-Color (Spectra-4) |
@@ -583,12 +583,14 @@
 //! [`PervasiveBwController`]: controllers::PervasiveBwController
 //! [`PervasiveBwryController`]: controllers::PervasiveBwryController
 //! [`GDEM0154Z90`]: panels::GDEM0154Z90
+//! [`GxEPD2_154_Z90c`]: panels::GxEPD2_154_Z90c
 //! [`GDEM0213B74`]: panels::GDEM0213B74
 //! [`GDEY0266Z90`]: panels::GDEY0266Z90
 //! [`GDEY0266T90`]: panels::GDEY0266T90
 //! [`GDEY0266T90H`]: panels::GDEY0266T90H
 //! [`ZJY122250_0213AJH_E5`]: panels::ZJY122250_0213AJH_E5
 //! [`GDEY0213F51`]: panels::GDEY0213F51
+//! [`GxEPD2_213c_GDEY0213F51`]: panels::GxEPD2_213c_GDEY0213F51
 //! [`GDEY0213F52`]: panels::GDEY0213F52
 //! [`GDEM037F51`]: panels::GDEM037F51
 //! [`GDEM0154F51H`]: panels::GDEM0154F51H
@@ -596,6 +598,7 @@
 //! [`GDEY037T03`]: panels::GDEY037T03
 //! [`SE0352N14TNGA0`]: panels::SE0352N14TNGA0
 //! [`GDEQ0426T82`]: panels::GDEQ0426T82
+//! [`GxEPD2_426_GDEQ0426T82`]: panels::GxEPD2_426_GDEQ0426T82
 //! [`GDEP073E01`]: panels::GDEP073E01
 //! [`E2266KS0C1`]: panels::E2266KS0C1
 //! [`E2290KS0F1`]: panels::E2290KS0F1

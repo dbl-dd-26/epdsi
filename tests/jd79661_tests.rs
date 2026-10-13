@@ -19,6 +19,19 @@ mod support;
 use support::*;
 
 #[test]
+fn test_jd79661_gxepd2_213c_gdey0213f51_alias_matches_zjy122250() {
+    assert_eq!(GxEPD2_213c_GDEY0213F51::WIDTH, ZJY122250_0213AJH_E5::WIDTH);
+    assert_eq!(
+        GxEPD2_213c_GDEY0213F51::HEIGHT,
+        ZJY122250_0213AJH_E5::HEIGHT
+    );
+    assert_eq!(
+        GxEPD2_213c_GDEY0213F51::COLOR_MODE,
+        ZJY122250_0213AJH_E5::COLOR_MODE
+    );
+}
+
+#[test]
 fn test_jd79661_zjy122250_panel_dimensions() {
     assert_eq!(ZJY122250_0213AJH_E5::WIDTH, 122);
     assert_eq!(ZJY122250_0213AJH_E5::HEIGHT, 250);

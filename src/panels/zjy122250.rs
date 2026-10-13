@@ -26,6 +26,10 @@ pub struct ZJY122250_0213AJH_E5;
 /// Type alias for Good Display 4-color part number `GDEY0213F51`.
 pub type GDEY0213F51 = ZJY122250_0213AJH_E5;
 
+/// GxEPD2 reference alias for this panel (`GxEPD2_213c_GDEY0213F51`).
+#[allow(non_camel_case_types)]
+pub type GxEPD2_213c_GDEY0213F51 = ZJY122250_0213AJH_E5;
+
 impl EpdPanel for ZJY122250_0213AJH_E5 {
     /// Panel physical width in pixels.
     const WIDTH: u32 = 122;

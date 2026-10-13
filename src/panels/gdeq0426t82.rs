@@ -61,6 +61,10 @@ const GRAY4_LUT: [u8; 105] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct GDEQ0426T82;
 
+/// GxEPD2 reference alias for this panel (`GxEPD2_426_GDEQ0426T82`).
+#[allow(non_camel_case_types)]
+pub type GxEPD2_426_GDEQ0426T82 = GDEQ0426T82;
+
 impl EpdPanel for GDEQ0426T82 {
     /// Panel physical width in pixels.
     const WIDTH: u32 = 800;
