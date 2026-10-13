@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Jd7966xRefreshMode { Full, Fast }` (`#[non_exhaustive]`, default `Full`) with
+  `with_refresh_mode`, `set_refresh_mode` and `refresh_mode` on `Jd79676Controller` and
+  `Jd7966xController`. `Fast` sends Good Display's `EPD_init_Fast()` from the `GDEY0213F52` V2.0
+  demo (`E0 02`, `E6 5A`, a bare `A5`, then `E9 01` and `PON`) with its 100 / 10 / 10 ms reset
+  timing. Measured on two units (Good Display lot `N5B3S02`, Seeed lot `NRA2L21`) at room
+  temperature: full refresh 15.9 s, fast refresh 10.9 s, colours clean and no visible ghosting.
+  `E6` and the bare `A5` are not in the JD79676AA V1.0.4 datasheet, so the mode is opt-in. The
+  JD79660 and JD79661 variants ignore it. Refresh and sleep are unchanged.
+- `Spi3Bus::read_jd7966x_revision`, which reads the JD7966x-family `R70H` REVISION register
+  (command `0x70`, three data bytes). Three units read three different values (`09 02 01`,
+  `89 02 01`, `09 01 01`), so it tells units apart. The JD79661AA datasheet value `03 02 01` has
+  not been seen on any unit.
+
+### Fixed
+
+- The `ZJY122250_0213AJH_E5` docs said units from Good Display, Seeed and Adafruit are
+  physically identical. They are not. The Seeed Studio 5779 carries the `0213SW-F52-B2`
+  sticker and reads JD79676AA revision bytes, so it is a `GDEY0213F52`. The `FPC-J002`
+  ribbon stamp is shared by both families and does not tell them apart, the rear sticker
+  does. Observed `R70H` bytes are recorded in both panel docs.
+
 ### Changed
 
 - Documented that `Ssd168xRefreshMode::FastFull` is slower than `Full` on the `GDEY0266T90H`:
