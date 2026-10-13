@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-12
+
 ### Added
 
 - `Jd7966xRefreshMode { Full, Fast }` (`#[non_exhaustive]`, default `Full`) with
@@ -16,7 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   timing. Measured on two units (Good Display lot `N5B3S02`, Seeed lot `NRA2L21`) at room
   temperature: full refresh 15.9 s, fast refresh 10.9 s, colours clean and no visible ghosting.
   `E6` and the bare `A5` are not in the JD79676AA V1.0.4 datasheet, so the mode is opt-in. The
-  JD79660 and JD79661 variants ignore it. Refresh and sleep are unchanged.
+  JD79660 and JD79661 variants ignore it. Refresh and sleep are unchanged. On an Adafruit
+  `ZJY122250` unit driven through the `Jd79676` variant, `Fast` gave no speed-up (20.5 s against
+  20.4 s), so it is a `GDEY0213F52` feature.
 - `Spi3Bus::read_jd7966x_revision`, which reads the JD7966x-family `R70H` REVISION register
   (command `0x70`, three data bytes). Three units read three different values (`09 02 01`,
   `89 02 01`, `09 01 01`), so it tells units apart. The JD79661AA datasheet value `03 02 01` has
@@ -744,7 +748,8 @@ Initial release.
 - `no_std` builds verified against `thumbv6m-none-eabi`, `thumbv7em-none-eabihf`, and
   `riscv32imac-unknown-none-elf`.
 
-[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/melastmohican/epdsi/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/melastmohican/epdsi/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/melastmohican/epdsi/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/melastmohican/epdsi/compare/v0.6.2...v0.7.0
