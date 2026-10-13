@@ -29,10 +29,13 @@
 //!   measured on this crate's own hardware yet — the one run that exercised it was confounded by an
 //!   unrelated example-side buffer bug (fixed; see `rust-rpico2-discovery`'s
 //!   `ssd1680_gdey0266t90_epd` history), not a fault in `FastFull` itself.
-//! - **Status**: register sequence derived from the GxEPD2 reference driver
-//!   (`GxEPD2_266_GDEY0266T90.cpp`) and cross-checked against `epdsi`'s existing SSD1680 controller
-//!   byte-for-byte. **Confirmed on physical hardware**, blocking on RP2350, RP2040 and ESP32-C3 and
-//!   async on RP2350: `Full` and `Partial` both render correctly on every host.
+//! - **Status**: the init registers (`0x3C`, `0x21`, `0x18`) match the GxEPD2 reference driver
+//!   (`GxEPD2_266_GDEY0266T90.cpp`). The refresh bytes do not: GxEPD2 sends `0xF4` for a full
+//!   update, `0x1A = 0x64` then `0xD4` for fast full, and a bare `0xFC` for partial, while `epdsi`
+//!   sends `0xF7`, `0xC7` after a `0x5A` temperature write, and `0xFF`, all inside the
+//!   `0xE0`/`0x83` power envelope that Good Display's own demo uses. **Confirmed on physical
+//!   hardware**, blocking on RP2350, RP2040 and ESP32-C3 and async on RP2350: `Full` and `Partial`
+//!   both render correctly on every host.
 //! - **4-level grayscale (Gray4)**: `GRAY4` on this panel is **not** Good Display/Waveshare
 //!   material — Waveshare's own spec lists 2 grayscale levels, and GxEPD2's reference driver never
 //!   writes a grayscale LUT. It is transcribed verbatim from Adafruit_EPD's

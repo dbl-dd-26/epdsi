@@ -90,10 +90,12 @@ pub enum Uc8253Variant {
     /// [`Uc8253RefreshMode`] is ignored for this variant.
     ///
     /// The controller drops its charge pump after an update, so each refresh powers it back on.
-    /// Waveshare's reference driver does this by re-running its entire init before every display
-    /// operation — one refresh per init. Skipping it does not error: the `DISPLAY_REFRESH` is
-    /// silently ignored, BUSY never asserts, and the refresh appears to complete instantly having
-    /// drawn nothing.
+    /// Waveshare's Arduino, ESP32 and ESP8266 sketches do this by re-running the whole init before
+    /// every display operation, one refresh per init. Their Raspberry Pi C example calls the init
+    /// once and then issues a bare `DISPLAY_REFRESH` for each later frame, so the reference
+    /// itself is not uniform. Here, skipping the power-on does not error: the `DISPLAY_REFRESH`
+    /// is silently ignored, BUSY never asserts, and the refresh appears to complete instantly
+    /// having drawn nothing.
     Se0352n14,
 }
 
@@ -337,8 +339,9 @@ where
                 bus.hard_reset(delay, 30).await?;
                 delay.delay_ms(200).await;
 
-                // Power comes up here rather than per-refresh: this panel's refresh is a bare
-                // `DISPLAY_REFRESH`, so the rails stay up between frames.
+                // Power comes up here for the first frame. `trigger_refresh` powers it on again
+                // before every refresh, because the controller drops its charge pump after an
+                // update and a bare `DISPLAY_REFRESH` is then ignored.
                 bus.send_command(cmd::POWER_ON).await?;
                 delay.delay_ms(100).await;
                 bus.wait_busy_with_delay(delay, false).await?;
@@ -437,11 +440,13 @@ where
             // from the `0x87` set at init and invert black and white. `refresh_mode` has no
             // effect here either: tri-colour ink has no differential waveform.
             //
-            // Power on before every refresh. Waveshare's reference driver re-runs its whole
-            // init — which begins with POWER_ON — before each display operation, exactly one
-            // refresh per init. The controller drops its charge pump after an update, and a bare
-            // DISPLAY_REFRESH on an unpowered controller is silently ignored: BUSY never asserts,
-            // the poll reads idle, and the refresh "finishes" instantly having done nothing.
+            // Power on before every refresh. Waveshare's Arduino, ESP32 and ESP8266 sketches
+            // re-run the whole init, which begins with POWER_ON, before each display operation.
+            // Their Raspberry Pi C example inits once and then sends a bare DISPLAY_REFRESH per
+            // frame, so the reference is not uniform. The controller drops its charge pump after
+            // an update, and a bare DISPLAY_REFRESH on an unpowered controller is silently
+            // ignored here: BUSY never asserts, the poll reads idle, and the refresh "finishes"
+            // instantly having done nothing.
             //
             // The fixed 100 ms settle matches both the reference driver and this controller's own
             // `init_sequence`. Watching for a BUSY edge here instead is worse: `POWER_ON` often

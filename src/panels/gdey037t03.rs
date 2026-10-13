@@ -14,8 +14,9 @@
 //!   entry, which separately names this panel as running cleanly on the replacement ESP32-C3
 //!   module).
 //! - **A real, benign register divergence from other references for this same board exists.**
-//!   Adafruit's own `ThinkInk_370_Mono_BAAMFGN.h`, for this exact Adafruit Product ID 6395
-//!   board, uses a structurally different flow: no soft-reset toggle, one `CDI`+`PANEL_SETTING`
+//!   Adafruit's own `ThinkInk_370_Mono_BAAMFGN.h` (a header name that carries no vendor part
+//!   number, so the link to `GDEY037T03` rests on Adafruit Product ID 6395 and the shared IC
+//!   and raster) uses a structurally different flow: no soft-reset toggle, one `CDI`+`PANEL_SETTING`
 //!   write at init, `CDI` never re-issued per refresh. Good Display's own vendor demo for this
 //!   panel differs again: no `PANEL_SETTING` write at all, separate init functions per refresh
 //!   mode instead of a shared per-refresh `CDI` write. All three are real, independently

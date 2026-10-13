@@ -3,6 +3,10 @@
 //! ### Hardware Notes:
 //! - **Adafruit Hardware**: Adafruit Product ID 6383 (Adafruit ThinkInk 2.13" Monochrome display breakout)
 //! - **Controller IC**: SSD1680Z
+//! - **Part number**: Adafruit's own header for this breakout is
+//!   `ThinkInk_213_Mono_GDEY0213B74`, so Adafruit labels the glass `GDEY0213B74`, not
+//!   `GDEM0213B74`. Both are SSD1680 at 122 x 250, but this crate has not confirmed they are the
+//!   same glass.
 //! - **Native Resolution**: 122 x 250 pixels (visible)
 //! - **RAM Alignment**: 128 pixels (16 bytes per row) in SSD1680 RAM layout — handled automatically by
 //!   the controller's byte-boundary window/cursor addressing, no special panel-side padding needed.
