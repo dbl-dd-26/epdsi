@@ -80,7 +80,7 @@ pub enum Uc8253Variant {
     /// `CDI`. Supports all four [`Uc8253RefreshMode`] modes.
     ///
     /// The previous-frame plane (`WRITE_OLD_DATA`, reached through `ColorChannel::RedYellow`) is
-    /// the caller's to keep. Both `CDI` values this variant uses (`0x97`, `0xD7`) have DDX[1] = 0,
+    /// the caller's to keep. Both `CDI` values this variant uses (`0x97`, `0xD7`) have `DDX[1]` = 0,
     /// so the controller picks the waveform from the new and old pixel pair, and the datasheet
     /// states no automatic copy of the new plane into the old one after a refresh. Write the
     /// frame that is now on the panel to the old plane after each refresh, as Good Display's
