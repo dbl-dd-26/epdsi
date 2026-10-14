@@ -144,7 +144,7 @@ epd_test!(
 async fn uc8253_trigger_refresh_all_modes_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut delay = DummyDelay;
 
     // Full (default), no window set: no PARTIAL_OUT, CDI=0x97, no CCSET/TSSET.
@@ -256,7 +256,7 @@ epd_test!(
 async fn uc8253_sleep_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut controller = Uc8253Controller::new(GDEY037T03::WIDTH, GDEY037T03::HEIGHT);
     let mut delay = DummyDelay;
 
@@ -318,7 +318,7 @@ fn test_uc8253_se0352n14_panel_dimensions() {
 async fn uc8253_se0352n14_init_sequence_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut controller = Uc8253Controller::new(SE0352N14TNGA0::WIDTH, SE0352N14TNGA0::HEIGHT)
         .with_variant(Uc8253Variant::Se0352n14);
     let mut delay = DummyDelay;
@@ -426,7 +426,7 @@ epd_test!(
 async fn uc8253_se0352n14_trigger_refresh_ignores_refresh_mode_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut delay = DummyDelay;
 
     for mode in [
@@ -634,7 +634,7 @@ fn test_wait_busy_assert_times_out_on_a_silent_panel() {
 async fn uc8253_fast_update_restores_panel_setting_with_settling_delay_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut delay = CountingDelay(0);
 
     let mut controller = Uc8253Controller::new(GDEY037T03::WIDTH, GDEY037T03::HEIGHT)

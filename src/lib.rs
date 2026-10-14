@@ -536,7 +536,8 @@
 //!   there is no separate API to learn. Two differences worth knowing before switching:
 //!
 //!   - [`SpiBusWrapper`]'s busy-wait methods poll with a bounded retry/timeout in blocking
-//!     mode, since a blocking spin has no other way to bound its own cost. In async mode they
+//!     mode and return [`bus::EpdBusError::Timeout`] when it runs out, since a blocking spin has no
+//!     other way to bound its own cost. In async mode they
 //!     wait on the BUSY pin's edge via `embedded-hal-async`'s `Wait` trait instead, with **no
 //!     timeout** — that trait has no timeout primitive to race against without an executor.
 //!     Bound a call yourself if you need one, e.g. `embassy_time::with_timeout(..., epd.refresh(&mut delay))`.

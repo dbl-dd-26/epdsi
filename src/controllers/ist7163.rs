@@ -134,7 +134,7 @@ where
         // timing note 2). BUSY is active-low: busy while LOW.
         delay.delay_ms(PRE_RESET_DELAY_MS).await;
         bus.hard_reset(delay, RESET_PULSE_MS).await?;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
 
         // PSR: param 1 is the reset default. Param 2 sets FOPT (no scan after the waveform) on
         // the `09` default.
@@ -214,7 +214,7 @@ where
         // when the power sequence is done.
         bus.send_command(cmd::POWER_ON).await?;
         delay.delay_ms(BUSY_SETTLE_MS).await;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
 
         // Test-mode bank 2: the charge pump timings switch to the refresh values.
         bus.send_command_with_data(cmd::TEST_MODE, &[0xA5]).await?;
@@ -282,7 +282,7 @@ where
         bus.send_command_with_data(cmd::DISPLAY_REFRESH, &[0x00])
             .await?;
         delay.delay_ms(BUSY_SETTLE_MS).await;
-        bus.wait_busy(false).await
+        bus.wait_busy_with_delay(delay, false).await
     }
 
     async fn sleep<DELAY: DelayNs>(
@@ -291,7 +291,7 @@ where
         delay: &mut DELAY,
     ) -> Result<(), Self::Error> {
         bus.send_command_with_data(cmd::POWER_OFF, &[0x00]).await?;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
         // Good Display's demo marks this delay "necessary".
         delay.delay_ms(SLEEP_SETTLE_MS).await;
         // The IC leaves deep sleep only through a hardware reset.

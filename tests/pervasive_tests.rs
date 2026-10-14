@@ -33,7 +33,7 @@ fn test_pervasive_controller_configuration() {
 async fn pervasive_refresh_and_sleep_command_payload_parity_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut controller = PervasiveBwController::new(152, 296);
     let mut delay = DummyDelay;
 
@@ -79,7 +79,7 @@ async fn pervasive_init_sequence_normal_vs_fast_body() {
     {
         let bus_backend = RecordingSpiBus::new();
         let dc = TestDc(&bus_backend);
-        let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+        let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
         let mut controller = PervasiveBwController::new(152, 296).with_temperature(25);
         let mut delay = DummyDelay;
 
@@ -108,7 +108,7 @@ async fn pervasive_init_sequence_normal_vs_fast_body() {
     {
         let bus_backend = RecordingSpiBus::new();
         let dc = TestDc(&bus_backend);
-        let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+        let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
         let mut controller = PervasiveBwController::new(152, 296)
             .with_temperature(25)
             .with_refresh_mode(PervasiveRefreshMode::Fast);
@@ -149,7 +149,7 @@ epd_test!(
 async fn pervasive_write_frame_and_fast_frame_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut controller = PervasiveBwController::new(152, 296);
 
     let frame_data = [0xAA; 4];
@@ -205,7 +205,7 @@ epd_test!(
 async fn pervasive_driver_f_e2290ks0f1_init_sequence_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut controller = PervasiveBwController::new(E2290KS0F1::WIDTH, E2290KS0F1::HEIGHT)
         .with_driver_variant(PervasiveDriverVariant::DriverF)
         .with_temperature(25);

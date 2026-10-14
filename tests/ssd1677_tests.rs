@@ -67,7 +67,8 @@ epd_test!(test_ssd1677_init_sequence, ssd1677_init_sequence_body);
 
 /// `SW_RESET` is followed by the datasheet's 10 ms settle and then a BUSY wait (backlog 2d). The byte stream is
 /// identical either way, so the poll shows up as 1 ms delays: none with an idle pin, many with
-/// BUSY stuck high until the bus's safety timeout gives up. Blocking only: the async bus waits
+/// BUSY stuck high until the bus's timeout gives up with `EpdBusError::Timeout`. Blocking
+/// only: the async bus waits
 /// on the pin's edge and never calls the delay.
 #[cfg(feature = "blocking")]
 #[test]
@@ -80,7 +81,12 @@ fn test_ssd1677_init_waits_on_busy_after_sw_reset() {
         let mut controller = Ssd1677Controller::new(GDEQ0426T82::WIDTH, GDEQ0426T82::HEIGHT);
         let mut delay = RecordingDelay::new();
 
-        controller.init_sequence(&mut bus, &mut delay).unwrap();
+        let result = controller.init_sequence(&mut bus, &mut delay);
+        if busy_level {
+            assert_eq!(result, Err(EpdBusError::Timeout), "stuck BUSY must time out");
+        } else {
+            result.unwrap();
+        }
         polled_ms.push(delay.calls_ms.iter().filter(|&&ms| ms == 1).count());
     }
 

@@ -91,6 +91,14 @@ pub enum EpdBusError<SPIE, DCE, RSTE, BUSYE> {
     Reset(RSTE),
     /// Error reading Busy input pin.
     Busy(BUSYE),
+    /// BUSY stayed asserted past the wait's bound, so the panel is hung or the wiring is wrong.
+    ///
+    /// Raised by [`SpiBusWrapper::wait_busy`] and [`SpiBusWrapper::wait_busy_with_delay`] in
+    /// blocking mode, after 60,000 ms for the delay-based wait. Async mode has no timeout of its
+    /// own (see the busy-wait block doc), so it never produces this; wrap the call in your
+    /// executor's timeout there. Before this variant existed both waits returned `Ok(())` on
+    /// timeout, so a hung panel looked the same as a finished refresh.
+    Timeout,
     /// A `write_frame` buffer is smaller than the channel requires for the panel's dimensions.
     BufferTooSmall {
         /// Minimum buffer length the channel/panel combination requires.
@@ -299,9 +307,11 @@ where
     }
 }
 
-/// Busy-wait methods, blocking mode: unchanged from 0.1.7 — a bounded spin/delay poll, since a
-/// blocking wait has no other way to bound its own cost. See the async block below for why the
-/// two modes deliberately behave differently here, not just mechanically.
+/// Busy-wait methods, blocking mode: a bounded spin/delay poll, since a blocking wait has no
+/// other way to bound its own cost. Running out of bound returns [`EpdBusError::Timeout`]; before
+/// that variant existed it returned `Ok(())` and a hung panel read as a finished refresh. See the
+/// async block below for why the two modes deliberately behave differently here, not just
+/// mechanically.
 #[cfg(feature = "blocking")]
 impl<SPI, DC, RST, BUSY> SpiBusWrapper<SPI, DC, RST, BUSY>
 where
@@ -311,6 +321,10 @@ where
     BUSY: InputPin,
 {
     /// Polls BUSY pin until display controller signals idle state.
+    ///
+    /// Returns [`EpdBusError::Timeout`] after 1,000,000,000 iterations. That bound is a hang
+    /// guard, not a duration: its wall time scales with the CPU clock. Prefer
+    /// [`Self::wait_busy_with_delay`] wherever a `DelayNs` is available.
     ///
     /// `busy_active_high`: `true` if HIGH indicates busy, `false` if LOW indicates busy.
     pub fn wait_busy(
@@ -325,8 +339,9 @@ where
                 core::hint::spin_loop();
                 retries += 1;
                 if retries > 1_000_000_000 {
-                    // Safety timeout after max iterations
-                    break;
+                    // Hang guard after max iterations. Wall time depends on the CPU clock, so
+                    // prefer `wait_busy_with_delay` wherever a `DelayNs` is in scope.
+                    return Err(EpdBusError::Timeout);
                 }
             } else {
                 break;
@@ -336,6 +351,9 @@ where
     }
 
     /// Polls BUSY pin until display controller signals idle state, delaying between iterations.
+    ///
+    /// Returns [`EpdBusError::Timeout`] if BUSY is still asserted after 60,000 ms, which is well
+    /// past the slowest documented refresh (about 35 s on the ED2208).
     ///
     /// `busy_active_high`: `true` if HIGH indicates busy, `false` if LOW indicates busy.
     pub fn wait_busy_with_delay<DELAY: DelayNs>(
@@ -350,8 +368,8 @@ where
                 delay.delay_ms(1);
                 retries += 1;
                 if retries > 60_000 {
-                    // Safety timeout after 60,000ms (60 seconds)
-                    break;
+                    // Timeout after 60,000 ms (60 seconds)
+                    return Err(EpdBusError::Timeout);
                 }
             } else {
                 break;
@@ -417,9 +435,9 @@ where
         busy_active_high: bool,
     ) -> SpiBusResult<SPI::Error, DC::Error, RST::Error, BUSY::Error> {
         if busy_active_high {
-            let _ = self.busy.wait_for_low().await;
+            self.busy.wait_for_low().await.map_err(EpdBusError::Busy)?;
         } else {
-            let _ = self.busy.wait_for_high().await;
+            self.busy.wait_for_high().await.map_err(EpdBusError::Busy)?;
         }
         Ok(())
     }
@@ -449,9 +467,9 @@ where
     ) -> SpiBusResult<SPI::Error, DC::Error, RST::Error, BUSY::Error, bool> {
         let _ = (delay, timeout_ms);
         if busy_active_high {
-            let _ = self.busy.wait_for_high().await;
+            self.busy.wait_for_high().await.map_err(EpdBusError::Busy)?;
         } else {
-            let _ = self.busy.wait_for_low().await;
+            self.busy.wait_for_low().await.map_err(EpdBusError::Busy)?;
         }
         Ok(true)
     }

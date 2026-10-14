@@ -626,7 +626,7 @@ where
         bus.send_command_with_data(cmd::UPDATE_DISPLAY_CTRL2, &[mode_byte])
             .await?;
         bus.send_command(cmd::MASTER_ACTIVATE).await?;
-        bus.wait_busy(true).await
+        bus.wait_busy_with_delay(delay, true).await
     }
 
     async fn sleep<DELAY: DelayNs>(

@@ -299,7 +299,7 @@ where
 
         // Power ON and wait while busy (busy active-low)
         bus.send_command(cmd::POWER_ON).await?;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
 
         Ok(())
     }
@@ -375,11 +375,11 @@ where
     async fn sleep<DELAY: DelayNs>(
         &mut self,
         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
-        _delay: &mut DELAY,
+        delay: &mut DELAY,
     ) -> Result<(), Self::Error> {
         // Power off command
         bus.send_command_with_data(cmd::POWER_OFF, &[0x00]).await?;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
 
         // Deep sleep command
         bus.send_command_with_data(cmd::DEEP_SLEEP, &[0xA5]).await

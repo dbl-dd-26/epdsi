@@ -17,7 +17,7 @@ async fn ssd1681_epd_driver_instantiation_and_paged_rendering_body() {
     let dc = TestDc(&bus_backend);
     let mut delay = DummyDelay;
 
-    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(false));
     let controller = Ssd1681Controller::new(GDEM0154Z90::WIDTH, GDEM0154Z90::HEIGHT);
     let mut driver = EpdBuilder::<_, GDEM0154Z90>::new(controller).build(bus);
 
@@ -117,7 +117,7 @@ async fn ssd1680_gdey0266z90_epd_driver_instantiation_and_paged_rendering_body()
     let dc = TestDc(&bus_backend);
     let mut delay = DummyDelay;
 
-    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(false));
     let controller = Ssd1680Controller::new(GDEY0266Z90::WIDTH, GDEY0266Z90::HEIGHT);
     let mut driver = EpdBuilder::<_, GDEY0266Z90>::new(controller).build(bus);
 
@@ -170,7 +170,7 @@ async fn ssd1680_gdey0266z90_tri_color_paged_rendering_body() {
     let dc = TestDc(&bus_backend);
     let mut delay = DummyDelay;
 
-    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(false));
     let controller = Ssd1680Controller::new(GDEY0266Z90::WIDTH, GDEY0266Z90::HEIGHT);
     let mut driver = EpdBuilder::<_, GDEY0266Z90>::new(controller).build(bus);
 
@@ -222,7 +222,7 @@ async fn ssd1680_gdey0266t90_gray4_paged_rendering_body() {
     let dc = TestDc(&bus_backend);
     let mut delay = DummyDelay;
 
-    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(false));
     let controller = Ssd1680Controller::for_panel::<GDEY0266T90>()
         .with_gray4(GDEY0266T90::GRAY4)
         .with_refresh_mode(Ssd168xRefreshMode::Gray4);

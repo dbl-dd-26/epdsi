@@ -517,7 +517,7 @@ async fn pervasive_bwry_init_sequence_uses_otp_data_body() {
     // OTP-derived register data (not the raw bit-bang bus).
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     controller
         .init_sequence(&mut bus, &mut delay)
         .await
@@ -576,7 +576,7 @@ epd_test!(
 async fn pervasive_bwry_drivera_init_sequence_powers_on_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut delay = DummyDelay;
     let mut controller = PervasiveBwryController::new(E2417QS0A3::WIDTH, E2417QS0A3::HEIGHT)
         .with_variant(PervasiveBwryVariant::DriverA);
@@ -634,7 +634,7 @@ epd_test!(
 async fn pervasive_bwry_trigger_refresh_and_sleep_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
-    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
     let mut delay = DummyDelay;
 
     let mut controller = PervasiveBwryController::new(E2154QS0F1::WIDTH, E2154QS0F1::HEIGHT)

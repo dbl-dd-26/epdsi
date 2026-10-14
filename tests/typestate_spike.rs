@@ -149,7 +149,7 @@ async fn ssd1681_typestate_happy_path_body() {
     let dc = TestDc(&bus_backend);
     let mut delay = DummyDelay;
 
-    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(false));
     let controller = Ssd1681Controller::new(GDEM0154Z90::WIDTH, GDEM0154Z90::HEIGHT);
     let uninit = TypestateDriver::new(EpdBuilder::<_, GDEM0154Z90>::new(controller).build(bus));
 

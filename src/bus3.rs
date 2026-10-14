@@ -41,6 +41,7 @@ pub trait DynamicPin {
 /// Error wrapper categorizing errors from the individual GPIO pins driving [`Spi3Bus`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[non_exhaustive]
 pub enum Spi3BusError<CSE, SCKE, DATAE, DCE, RSTE, BUSYE> {
     /// Error toggling the Chip Select pin.
     Cs(CSE),
@@ -54,6 +55,9 @@ pub enum Spi3BusError<CSE, SCKE, DATAE, DCE, RSTE, BUSYE> {
     Reset(RSTE),
     /// Error reading the Busy input pin.
     Busy(BUSYE),
+    /// BUSY stayed asserted for 1,500 ms, so the panel is hung or the wiring is wrong. Before this
+    /// variant existed the wait returned `Ok(())` on timeout.
+    Timeout,
 }
 
 /// Alias for [`Spi3Bus`] operation results.
@@ -153,7 +157,7 @@ where
                 delay.delay_ms(1).await;
                 retries += 1;
                 if retries > 1_500 {
-                    break;
+                    return Err(Spi3BusError::Timeout);
                 }
             } else {
                 break;

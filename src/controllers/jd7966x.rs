@@ -306,7 +306,7 @@ where
         } else {
             bus.hard_reset(delay, 10).await?;
         }
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
 
         match self.variant {
             Jd7966xVariant::Jd79660 => {
@@ -342,7 +342,7 @@ where
             }
             Jd7966xVariant::Jd79661 => {
                 bus.send_command_with_data(cmd::POWER_SETTING, &[]).await?;
-                bus.wait_busy(false).await?;
+                bus.wait_busy_with_delay(delay, false).await?;
 
                 // Vendor unlock key
                 bus.send_command_with_data(cmd::MAGIC_KEY, &[0x78]).await?;
@@ -398,7 +398,7 @@ where
                     bus.send_command_with_data(0xE0, &[0x02]).await?;
                     bus.send_command_with_data(0xE6, &[0x5A]).await?;
                     bus.send_command(0xA5).await?;
-                    bus.wait_busy(false).await?;
+                    bus.wait_busy_with_delay(delay, false).await?;
                 }
                 // Panel, power, booster, CDI and resolution all come from OTP (datasheet default
                 // RES is 128x250). `0xE9` is undocumented in the public datasheet and is the
@@ -409,7 +409,7 @@ where
 
         // Power ON and wait until ready
         bus.send_command(cmd::POWER_ON).await?;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
 
         Ok(())
     }
@@ -459,11 +459,11 @@ where
     async fn trigger_refresh<DELAY: DelayNs>(
         &mut self,
         bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
-        _delay: &mut DELAY,
+        delay: &mut DELAY,
     ) -> Result<(), Self::Error> {
         bus.send_command_with_data(cmd::DISPLAY_REFRESH, &[0x00])
             .await?;
-        bus.wait_busy(false).await
+        bus.wait_busy_with_delay(delay, false).await
     }
 
     async fn sleep<DELAY: DelayNs>(
@@ -472,7 +472,7 @@ where
         delay: &mut DELAY,
     ) -> Result<(), Self::Error> {
         bus.send_command_with_data(cmd::POWER_OFF, &[0x00]).await?;
-        bus.wait_busy(false).await?;
+        bus.wait_busy_with_delay(delay, false).await?;
         // Good Display's `GDEY0213F51` demo (`EPD_sleep()`) waits 100 ms between POWER_OFF and
         // DEEP_SLEEP and marks it "necessary, 100mS at least". The JD79660 demo
         // (`GDEM0154F51H`) and the `GDEY0213F52` demo have no such delay, so only JD79661 gets it.

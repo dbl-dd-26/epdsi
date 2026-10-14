@@ -18,6 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** a BUSY wait that runs out of bound now returns `EpdBusError::Timeout` instead of
+  `Ok(())`. `SpiBusWrapper::wait_busy` (1,000,000,000 spins) and `wait_busy_with_delay`
+  (60,000 ms) in blocking mode, and `Spi3Bus::wait_busy` (1,500 ms), used to return `Ok` on
+  timeout, so a hung panel looked like a finished refresh. `Spi3BusError` gains a `Timeout`
+  variant and is now `#[non_exhaustive]`, so exhaustive matches on it need a wildcard arm. Async
+  mode still has no timeout of its own; bound the call with your executor's.
+- **Breaking:** in async mode `wait_busy`, `wait_busy_with_delay` and `wait_busy_assert` now return
+  `EpdBusError::Busy` when the BUSY pin's `wait_for_*` fails. They used to drop that error and
+  return `Ok`, which blocking mode never did.
+- `Ssd1677Controller`, `Jd7966xController`, `Ist7163Controller` and `Ed2208Controller` wait on
+  BUSY with `wait_busy_with_delay` instead of the iteration-counted spin, so the bound is 60 s of
+  wall time rather than a CPU-dependent iteration count. The one exception is the SSD1677
+  auto-fill sweep in `write_frame_pattern`, whose trait signature has no delay; it keeps the spin
+  wait and now reports `Timeout` at its cap.
 - `Ed2208Controller::trigger_partial_refresh` now writes `CDI = 0xFF` for the windowed refresh and
   restores `0x3F` afterwards. On a `GDEP073E01` six-bar test image, red and green outside the
   window now keep their colour after one update where they used to wash out. Blue and white still
