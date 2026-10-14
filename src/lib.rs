@@ -337,7 +337,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! epdsi = { version = "0.8", default-features = false }
+//! epdsi = { version = "0.9", default-features = false }
 //! embedded-hal = "1.0"
 //! embedded-hal-async = "1.0"
 //! maybe-async-cfg = "0.2"
@@ -527,7 +527,7 @@
 //!   additive, since a bus can only be one or the other:
 //!
 //!   ```toml
-//!   epdsi = { version = "0.8", default-features = false, features = ["graphics"] }
+//!   epdsi = { version = "0.9", default-features = false, features = ["graphics"] }
 //!   ```
 //!
 //!   The async shape mirrors the blocking one exactly (same types, same method names, every
