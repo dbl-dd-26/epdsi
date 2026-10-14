@@ -153,21 +153,22 @@ impl Ed2208Controller {
     /// refresh and restores `0x3F` afterwards, so a later full refresh sees the init value.
     /// Good Display's `EPD_refresh()` and Zephyr's `ed2208_gca` driver only ever write `0x3F`.
     /// Bench-compared on `GDEP073E01` (reTerminal E1002, 13 Oct 2026, same image, three runs):
-    /// with `0x3F` the whole panel washes out after one windowed update (red turns orange-tan,
-    /// green olive-grey), and the result repeated across two baseline runs. With `0xFF` red and
-    /// green outside the window stay saturated and the fade is confined to a band under the
-    /// window. Refresh time is unchanged at about 28.4 s.
+    /// with `0x3F` the whole six-bar test image washes out after one windowed update (red turns
+    /// orange-tan, green olive-grey), and the result repeated across two baseline runs. With
+    /// `0xFF` red and green outside the window stay saturated, while blue and white still fade.
+    /// Refresh time is unchanged at about 28.4 s.
     ///
     /// No speed benefit: real hardware measurement (Zephyr's `ed2208_gca` issue tracker) shows
     /// full and partial refresh take the same ~35s regardless of window size on this controller.
     ///
     /// **The area outside the window still fades starting from the very first partial
-    /// refresh, not just after repeated ones, though less than with `CDI = 0x3F`.**
-    /// Bench-confirmed on `GDEP073E01`
+    /// refresh, not just after repeated ones, and chained updates compound it.** On a solid
+    /// blue background one windowed update left only a strip at the top blue, and five left the
+    /// panel almost entirely grey-brown. Bench-confirmed on `GDEP073E01`
     /// (`epdsi` backlog item `0i`). This is why Zephyr's own `ed2208_gca` driver doesn't expose
     /// partial refresh at all (`-ENOTSUP` on any non-full-panel write): its issue tracker warned
-    /// of "cumulative fading," but on real hardware the fade starts immediately, it does not
-    /// build up gradually over many calls. Always follow a partial refresh with a prompt full
+    /// of "cumulative fading," and on real hardware the fade both starts with the first update
+    /// and gets worse with each further one. Always follow a partial refresh with a prompt full
     /// [`EpdController::trigger_refresh`] to restore the rest of the panel; do not chain partial
     /// refreshes back to back expecting the untouched area to hold.
     ///

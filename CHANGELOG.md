@@ -19,8 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `Ed2208Controller::trigger_partial_refresh` now writes `CDI = 0xFF` for the windowed refresh and
-  restores `0x3F` afterwards. On a `GDEP073E01` the area outside the window now keeps its colour
-  where it used to wash out after one update, and the fade is confined to a band under the window.
+  restores `0x3F` afterwards. On a `GDEP073E01` six-bar test image, red and green outside the
+  window now keep their colour after one update where they used to wash out. Blue and white still
+  fade, and chained windowed updates grey the panel out, so follow them with a full refresh.
   Refresh time is unchanged. This adds two SPI commands around `DISPLAY_REFRESH`, so callers that
   assert exact byte streams will see them.
 
