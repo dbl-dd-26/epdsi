@@ -380,7 +380,12 @@ where
     ) -> Result<(), Self::Error> {
         bus.hard_reset(delay, 10).await?;
         bus.send_command(cmd::SW_RESET).await?;
+        // Datasheet (Rev 1.0, command 0x12): BUSY is high while the reset runs, and the operation
+        // flow in section 9.1 says "SW Reset, then wait 10 ms". Do both: the settle first, so BUSY
+        // has risen before it is polled, then the BUSY wait. Good Display's GDEQ0426T82 demo,
+        // Adafruit and Seeed wait on BUSY alone.
         delay.delay_ms(10).await;
+        bus.wait_busy_with_delay(delay, true).await?;
 
         // Internal Temperature Sensor Selection
         bus.send_command_with_data(cmd::TEMP_CONTROL, &[0x80])

@@ -65,6 +65,35 @@ async fn ssd1677_init_sequence_body() {
 }
 epd_test!(test_ssd1677_init_sequence, ssd1677_init_sequence_body);
 
+/// `SW_RESET` is followed by the datasheet's 10 ms settle and then a BUSY wait (backlog 2d). The byte stream is
+/// identical either way, so the poll shows up as 1 ms delays: none with an idle pin, many with
+/// BUSY stuck high until the bus's safety timeout gives up. Blocking only: the async bus waits
+/// on the pin's edge and never calls the delay.
+#[cfg(feature = "blocking")]
+#[test]
+fn test_ssd1677_init_waits_on_busy_after_sw_reset() {
+    let mut polled_ms = Vec::new();
+    for busy_level in [false, true] {
+        let bus_backend = RecordingSpiBus::new();
+        let dc = TestDc(&bus_backend);
+        let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(busy_level));
+        let mut controller = Ssd1677Controller::new(GDEQ0426T82::WIDTH, GDEQ0426T82::HEIGHT);
+        let mut delay = RecordingDelay::new();
+
+        controller.init_sequence(&mut bus, &mut delay).unwrap();
+        polled_ms.push(delay.calls_ms.iter().filter(|&&ms| ms == 1).count());
+    }
+
+    assert_eq!(
+        polled_ms[0], 0,
+        "an idle BUSY pin must not be polled with delays"
+    );
+    assert!(
+        polled_ms[1] > 0,
+        "init must poll BUSY after SW_RESET, saw no 1 ms poll delays with BUSY stuck high"
+    );
+}
+
 #[maybe_async_cfg::maybe(
     sync(feature = "blocking", keep_self),
     async(not(feature = "blocking"), keep_self)
