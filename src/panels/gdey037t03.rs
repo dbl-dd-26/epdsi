@@ -3,6 +3,10 @@
 //! ### Hardware Notes:
 //! - **Adafruit Hardware**: Adafruit Product ID 6395 (Adafruit ThinkInk 3.7" Monochrome display breakout)
 //! - **Controller IC**: UC8253
+//! - **Glass provenance**: the Adafruit 6395 module is Zhongjingyuan (ZJY) part
+//!   `ZJY240416-037BAAMFGN`, not Good Display glass. Its own datasheet's operating flow agrees with
+//!   this driver on reset timing, display order (data, `PON`, `DRF`, `POF`) and sleep (`POF`, wait
+//!   for BUSY, then `DSLP`, with no gap), but lists the init registers without byte values.
 //! - **Native Resolution**: 240 x 416 pixels (already byte-aligned, no RAM padding)
 //! - **Busy Polarity**: Active-**LOW** (busy while LOW) — opposite of the SSD16xx-family panels
 //!   in this crate.

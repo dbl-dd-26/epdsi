@@ -78,6 +78,13 @@ pub enum Uc8253Variant {
     /// Monochrome; `PANEL_SETTING` soft-reset init; Black/White plane on
     /// [`cmd::WRITE_NEW_DATA`]; every refresh powers the panel up and back down, and re-issues
     /// `CDI`. Supports all four [`Uc8253RefreshMode`] modes.
+    ///
+    /// The previous-frame plane (`WRITE_OLD_DATA`, reached through `ColorChannel::RedYellow`) is
+    /// the caller's to keep. Both `CDI` values this variant uses (`0x97`, `0xD7`) have DDX[1] = 0,
+    /// so the controller picks the waveform from the new and old pixel pair, and the datasheet
+    /// states no automatic copy of the new plane into the old one after a refresh. Write the
+    /// frame that is now on the panel to the old plane after each refresh, as Good Display's
+    /// demo does and as the `uc8253_gdey037t03_epd` examples do.
     #[default]
     Gdey037t03,
     /// Waveshare `SE0352N14-TNG-A0` (3.52" e-Paper HAT (B)) profile.
