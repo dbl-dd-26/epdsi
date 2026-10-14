@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GDEH0154Z90`, a different Good Display part number, so that alias names the driver class
   `epdsi` was audited against and does not claim a part-number match.
 
+### Changed
+
+- `Ed2208Controller::trigger_partial_refresh` now writes `CDI = 0xFF` for the windowed refresh and
+  restores `0x3F` afterwards. On a `GDEP073E01` the area outside the window now keeps its colour
+  where it used to wash out after one update, and the fade is confined to a band under the window.
+  Refresh time is unchanged. This adds two SPI commands around `DISPLAY_REFRESH`, so callers that
+  assert exact byte streams will see them.
+
+### Fixed
+
+- `Ssd1677Controller::init_sequence` now waits on BUSY after `SW_RESET`, after the datasheet's
+  10 ms settle. The byte stream is unchanged.
+
 ### Documentation
 
 - Corrected parity claims found in the 13 Oct 2026 audit: the `GDEY0266T90` header no longer says

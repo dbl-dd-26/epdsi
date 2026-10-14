@@ -170,11 +170,12 @@ async fn ed2208_trigger_partial_refresh_narrows_without_widening_body() {
         vec![
             SpiRecord::Command(0x83), // PARTIAL_WINDOW: caller's actual window, not widened
             SpiRecord::Data(vec![0x00, 100, 0x01, 43, 0x00, 50, 0x00, 130, 0x01]),
+            SpiRecord::Command(0x50), // CDI: border floating for the windowed refresh
+            SpiRecord::Data(vec![0xFF]),
             SpiRecord::Command(0x12), // DISPLAY_REFRESH
             SpiRecord::Data(vec![0x00]),
-            // No CDI (0x50) write: CDI is left untouched, matching Good Display's own
-            // EPD_refresh() and Zephyr's ed2208_gca driver, neither of which resend it per
-            // refresh with a different byte for a partial update.
+            SpiRecord::Command(0x50), // CDI: restored to the init value for later full refreshes
+            SpiRecord::Data(vec![0x3F]),
         ]
     );
 }

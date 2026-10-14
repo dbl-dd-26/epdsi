@@ -149,18 +149,21 @@ impl Ed2208Controller {
     /// controller.trigger_partial_refresh(bus, &mut delay, x, y, w, h).await?;
     /// ```
     ///
-    /// Does not change the VCOM & data interval register (`CDI`): Good Display's own
-    /// `EPD_refresh()` (the single function both its full-panel and partial-window paths call)
-    /// and Zephyr's independent `ed2208_gca` driver both only ever write `CDI = 0x3F`, never
-    /// `0xFF`. GxEPD2's narrowed-refresh overload writes `0xFF` ("border floating"), but it's the
-    /// only one of the three references that does, with no independent hardware corroboration
-    /// found for that byte, so this leaves `CDI` untouched rather than following it.
+    /// Writes `CDI = 0xFF` ("border floating", as GxEPD2's narrowed-refresh overload does) for the
+    /// refresh and restores `0x3F` afterwards, so a later full refresh sees the init value.
+    /// Good Display's `EPD_refresh()` and Zephyr's `ed2208_gca` driver only ever write `0x3F`.
+    /// Bench-compared on `GDEP073E01` (reTerminal E1002, 13 Oct 2026, same image, three runs):
+    /// with `0x3F` the whole panel washes out after one windowed update (red turns orange-tan,
+    /// green olive-grey), and the result repeated across two baseline runs. With `0xFF` red and
+    /// green outside the window stay saturated and the fade is confined to a band under the
+    /// window. Refresh time is unchanged at about 28.4 s.
     ///
     /// No speed benefit: real hardware measurement (Zephyr's `ed2208_gca` issue tracker) shows
     /// full and partial refresh take the same ~35s regardless of window size on this controller.
     ///
-    /// **The area outside the window visibly fades starting from the very first partial
-    /// refresh, not just after repeated ones.** Bench-confirmed on `GDEP073E01`
+    /// **The area outside the window still fades starting from the very first partial
+    /// refresh, not just after repeated ones, though less than with `CDI = 0x3F`.**
+    /// Bench-confirmed on `GDEP073E01`
     /// (`epdsi` backlog item `0i`). This is why Zephyr's own `ed2208_gca` driver doesn't expose
     /// partial refresh at all (`-ENOTSUP` on any non-full-panel write): its issue tracker warned
     /// of "cumulative fading," but on real hardware the fade starts immediately, it does not
@@ -205,10 +208,15 @@ impl Ed2208Controller {
         }
 
         self.set_partial_ram_area(bus, x, y, w, h).await?;
+        bus.send_command_with_data(cmd::CDI, &[0xFF]).await?;
         bus.send_command_with_data(cmd::DISPLAY_REFRESH, &[0x00])
             .await?;
         delay.delay_ms(1).await;
-        bus.wait_busy_with_delay(delay, false).await
+        let refreshed = bus.wait_busy_with_delay(delay, false).await;
+        // Put the init value back even if the wait failed, so the next full refresh does not run
+        // with the border floating. The refresh error, if any, is the one reported.
+        let restored = bus.send_command_with_data(cmd::CDI, &[0x3F]).await;
+        refreshed.and(restored)
     }
 }
 
