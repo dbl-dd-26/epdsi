@@ -468,6 +468,7 @@ where
             // delay is not sufficient: assertion latency varies, and a 10 ms guard was observed
             // holding on some refreshes and missing on others on the same board, leaving the
             // panel a frame behind whenever it missed.
+            // As below, the result is deliberately not checked.
             bus.send_command(cmd::DISPLAY_REFRESH).await?;
             bus.wait_busy_assert(delay, false, BUSY_ASSERT_TIMEOUT_MS)
                 .await?;
@@ -503,6 +504,13 @@ where
         // it a refresh can report 0 ms while still running, or while the controller ignored the
         // command entirely. Costs one poll when BUSY asserts normally, so the fast-partial path is
         // unaffected; only the already-broken case pays the timeout.
+        //
+        // The result is deliberately not checked. If BUSY never asserts within the timeout the
+        // call returns `Ok(false)`, and the wait below then reads idle and returns at once, so
+        // the refresh reports `Ok` having drawn nothing. That is `wait_busy_assert`'s contract (a
+        // silent panel is reported to its caller, not raised as an error), and turning it into
+        // `Err(Timeout)` here would be a breaking change. Not needed so far: 12 healthy
+        // refreshes on a GDEY037T03 and an SE0352N14 all asserted.
         bus.send_command(cmd::DISPLAY_REFRESH).await?;
         bus.wait_busy_assert(delay, false, BUSY_ASSERT_TIMEOUT_MS)
             .await?;
