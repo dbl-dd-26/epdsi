@@ -161,7 +161,9 @@ the other. See the crate root doc's "Cargo features" section for the two behavio
 worth knowing before switching (async busy-waits have no timeout; `render_paged`'s drawing
 closure stays synchronous either way).
 
-The minimum supported Rust version is **1.75**.
+The minimum supported Rust version is **1.75**. The optional `defmt` feature pulls in `defmt` 1.2.0
+or newer on a fresh dependency resolve, and that release needs rustc 1.81. On an older compiler,
+pin it with `cargo update defmt --precise 1.1.1`.
 
 The snippets below are abridged; for complete flashable programs see [Examples on real hardware](#examples-on-real-hardware).
 
