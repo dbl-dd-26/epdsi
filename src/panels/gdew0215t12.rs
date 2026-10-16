@@ -15,7 +15,7 @@
 //!   this crate accept is out of spec here.
 //! - **Waveform**: stored in the on-chip OTP, 1-bit (black and white only). There is no 4-gray
 //!   mode on this panel.
-//! - **Status**: bench verified on 15 Oct 2026 with the blocking API on an XIAO ESP32-C3 on the Seeed
+//! - **Status**: hardware-verified on 15 Oct 2026 with the blocking API on an XIAO ESP32-C3 on the Seeed
 //!   ePaper Driver Board (full refresh, whole-frame partial, windowed partial). The register
 //!   sequence is Good Display's own `AU-GDEW0215T12-P-20230926` demo, checked against the panel
 //!   specification (`GDEW0215T12-new.pdf`, rev 1.0). The same four screens also ran to completion on
