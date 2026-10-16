@@ -7,6 +7,7 @@ pub mod pervasive_bw;
 pub mod pervasive_bwry;
 pub mod ssd1677;
 pub mod ssd168x;
+pub mod uc8151d;
 pub mod uc8253;
 
 pub use ed2208::Ed2208Controller;
@@ -22,4 +23,5 @@ pub use ssd168x::{
     Ssd1680Controller, Ssd1680RefreshMode, Ssd1681Controller, Ssd1681RefreshMode,
     Ssd168xController, Ssd168xRefreshMode, Ssd168xVariant,
 };
+pub use uc8151d::{Uc8151dController, Uc8151dRefreshMode};
 pub use uc8253::{Uc8253Controller, Uc8253RefreshMode, Uc8253Variant};

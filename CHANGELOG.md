@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Uc8151dController` and the `GDEW0215T12` panel (2.15" Good Display, 112 x 208, monochrome).
+  The UC8151D has its own controller instead of a third `Uc8253Variant`, because its init,
+  RAM plane order and partial profile differ. `Uc8151dRefreshMode::{Full, Partial}` selects the
+  init profile and is read at `init`, so set it before initialising or initialise again after
+  changing it. Bench verified with the blocking API on an XIAO ESP32-C3 and the Seeed
+  ePaper Driver Board: full refresh, whole-frame partial and windowed partial all rendered. The
+  register sequences are Good Display's `AU-GDEW0215T12-P-20230926` demo replayed byte for byte.
+  The partial window sends the vertical end line inclusive as the datasheet defines it, where the
+  demo sends it minus one; the inclusive form worked. The vendor's undocumented second
+  panel-setting byte `0x0D` is sent and works. The same four screens also completed on an Adafruit
+  Feather RP2040 ThinkInk and on a Pico 2, with both the blocking and the async (Embassy) APIs.
+
 ## [0.9.0] - 2026-10-14
 
 ### Added
