@@ -11,14 +11,14 @@
 //! - **Busy polarity**: Active-**LOW** (busy while LOW). Use a pull-up input.
 //! - **Colour codes**: black `00`, white `01`, yellow `10`, red `11`.
 //! - **Refresh**: full refresh only, no partial.
-//! - **Status**: register sequences replay Good Display's `AU-GDEM0154F61H-F-20260513` demo,
-//!   checked against `SSD2681.pdf` (rev 1.0). Bench verified on 17 Oct 2026 with the blocking API and
-//!   `Ssd2681RefreshMode::Full` on an XIAO ESP32-C3 on the Seeed ePaper Driver Board: the full
-//!   example screen rendered. `Ssd2681RefreshMode::Fast` also ran to completion and measured 12338 ms against 20588 ms for
-//!   `Full` on the same board, with clean colours at room temperature. The async API also ran on a Pico 2 with the DESPI-C02 (Embassy, 16 MHz SPI), measuring
-//!   20597 ms for `Full` and 12343 ms for `Fast`. The blocking API on the same Pico 2
-//!   measured 20601 ms and 12346 ms, and an Adafruit Feather RP2040 ThinkInk
-//!   measured 20593 ms and 12342 ms.
+//! - **Status**: hardware-verified on 17 Oct 2026. The register sequences replay Good Display's
+//!   `AU-GDEM0154F61H-F-20260513` demo, checked against `SSD2681.pdf` (rev 1.0). With the blocking
+//!   API and `Ssd2681RefreshMode::Full` on an XIAO ESP32-C3 on the Seeed ePaper Driver Board, the
+//!   full example screen rendered. `Ssd2681RefreshMode::Fast` also ran and measured 12338 ms
+//!   against 20588 ms for `Full` on the same board, with clean colours at room temperature. The
+//!   async API ran on a Pico 2 with the DESPI-C02 (Embassy, 16 MHz SPI), at 20597 ms for `Full`
+//!   and 12343 ms for `Fast`. The blocking API on the same Pico 2 measured 20601 ms and 12346 ms,
+//!   and an Adafruit Feather RP2040 ThinkInk measured 20593 ms and 12342 ms.
 
 use crate::traits::{ColorMode, EpdPanel};
 
