@@ -91,6 +91,10 @@ pub enum Ssd2681RefreshMode {
     /// `0xE9`, `0xEF`, `0xF6` and the bare `0xA5` are not in the datasheet. `TSFIX` plus `0xE6`
     /// forces the temperature to 92 degC, which most likely selects a shorter waveform. That is
     /// an inference from the datasheet's description of `TSSET`, not a measurement.
+    ///
+    /// Measured on an XIAO ESP32-C3 on 17 Oct 2026 with a `GDEM0154F61H`: 12338 ms, against
+    /// 20588 ms for [`Ssd2681RefreshMode::Full`], with clean colours at room temperature. Behaviour
+    /// in a cold or hot room has not been tested.
     Fast,
 }
 
