@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Ssd2681Controller` and the `GDEM0154F61H` panel (1.54" Good Display, 200 x 200, Quad-Color). The SSD2681 has its own controller instead of a `Jd7966xVariant`: its plain init matches the JD79676 profile, but the vendors differ and the fast init does not. `Ssd2681RefreshMode::{Full, Fast}` is read at `init`. Register sequences replay Good Display's `AU-GDEM0154F61H-F-20260513` demo and are pinned by byte-exact tests. Bench verified with the blocking API and `Full` on an XIAO ESP32-C3 and the Seeed ePaper Driver Board on 17 Oct 2026; `Ssd2681RefreshMode::Fast` also ran, at 12338 ms against 20588 ms for `Full`, with clean colours at room temperature. Async has not been run.
+- `Ssd2681Controller` and the `GDEM0154F61H` panel (1.54" Good Display, 200 x 200, Quad-Color). The SSD2681 has its own controller instead of a `Jd7966xVariant`: its plain init matches the JD79676 profile, but the vendors differ and the fast init does not. `Ssd2681RefreshMode::{Full, Fast}` is read at `init`. Register sequences replay Good Display's `AU-GDEM0154F61H-F-20260513` demo and are pinned by byte-exact tests. Bench verified with the blocking API and `Full` on an XIAO ESP32-C3 and the Seeed ePaper Driver Board on 17 Oct 2026; `Ssd2681RefreshMode::Fast` also ran, at 12338 ms against 20588 ms for `Full`, with clean colours at room temperature. The async API also ran on a Pico 2 with the DESPI-C02, at 20597 ms for `Full` and 12343 ms for `Fast`.
 
 ## [0.9.1] - 2026-10-15
 
