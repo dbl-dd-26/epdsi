@@ -16,7 +16,8 @@
 //!   `Ssd2681RefreshMode::Full` on an XIAO ESP32-C3 on the Seeed ePaper Driver Board: the full
 //!   example screen rendered. `Ssd2681RefreshMode::Fast` also ran to completion and measured 12338 ms against 20588 ms for
 //!   `Full` on the same board, with clean colours at room temperature. The async API also ran on a Pico 2 with the DESPI-C02 (Embassy, 16 MHz SPI), measuring
-//!   20597 ms for `Full` and 12343 ms for `Fast`.
+//!   20597 ms for `Full` and 12343 ms for `Fast`. The blocking API on the same Pico 2
+//!   measured 20601 ms and 12346 ms.
 
 use crate::traits::{ColorMode, EpdPanel};
 
