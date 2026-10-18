@@ -7,7 +7,8 @@
 //!
 //! Every byte below comes from Good Display's own `GDEM0154F61H` package
 //! (`AU-GDEM0154F61H-F-20260513`, `Display_EPD_W21.cpp`), checked against `SSD2681.pdf` (rev 1.0,
-//! Oct 2025). The datasheet documents `0xE0` (CCSET, `TSFIX`), `0xE6` (TSSET), `0x12` (DRF),
+//! Oct 2025), and bench verified on 17 Oct 2026 (see [`GDEM0154F61H`](crate::panels::GDEM0154F61H)).
+//! The datasheet documents `0xE0` (CCSET, `TSFIX`), `0xE6` (TSSET), `0x12` (DRF),
 //! `0x02` (POF), `0x07` (deep sleep) and `0x10` (DTM). It does not document `0xE9`, `0xEF` or
 //! `0xF6`, which the demo sends, so those three are vendor registers sourced from the demo only.
 //!

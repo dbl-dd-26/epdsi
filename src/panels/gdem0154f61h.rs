@@ -12,7 +12,9 @@
 //! - **Colour codes**: black `00`, white `01`, yellow `10`, red `11`.
 //! - **Refresh**: full refresh only, no partial.
 //! - **Status**: register sequences replay Good Display's `AU-GDEM0154F61H-F-20260513` demo,
-//!   checked against `SSD2681.pdf` (rev 1.0). Not yet bench verified.
+//!   checked against `SSD2681.pdf` (rev 1.0). Bench verified on 17 Oct 2026 with the blocking API and
+//!   `Ssd2681RefreshMode::Full` on an XIAO ESP32-C3 on the Seeed ePaper Driver Board: the full
+//!   example screen rendered. `Ssd2681RefreshMode::Fast` and the async API have not been run.
 
 use crate::traits::{ColorMode, EpdPanel};
 
