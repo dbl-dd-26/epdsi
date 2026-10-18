@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Ssd2681Controller` and the `GDEM0154F61H` panel (1.54" Good Display, 200 x 200, Quad-Color). The SSD2681 has its own controller instead of a `Jd7966xVariant`: its plain init matches the JD79676 profile, but the vendors differ and the fast init does not. `Ssd2681RefreshMode::{Full, Fast}` is read at `init`. Register sequences replay Good Display's `AU-GDEM0154F61H-F-20260513` demo and are pinned by byte-exact tests. Not yet bench verified.
+
 ## [0.9.1] - 2026-10-15
 
 ### Added
