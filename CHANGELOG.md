@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-10-21
+
 ### Added
 
 - `RefreshPolicy` and `RefreshKind` in the new `epdsi::policy` module, also in the prelude. A caller-owned counter that says when a partial-refresh loop owes the panel a full refresh: `RefreshPolicy::default()` asks for a full refresh after 5 partial ones, the cadence in Good Display's demos and Waveshare's 3.7 inch (G) manual. It does not touch the driver or the controllers, so the caller maps `RefreshKind::{Full, Partial}` to its controller's refresh mode. Going back to a full refresh after a partial one needs only `set_refresh_mode` on `Ssd168xController` and `Ssd1677Controller` (checked on a `GDEM0213B74` and a `GDEQ0426T82`, comparing the picture with and without a fresh `init`) and, from reading the code, `Uc8253Controller`; `Uc8151dController` needs `init` again. The 24 hour refresh rule stays with the caller. `RefreshKind` is `#[non_exhaustive]`.
@@ -821,7 +823,8 @@ Initial release.
 - `no_std` builds verified against `thumbv6m-none-eabi`, `thumbv7em-none-eabihf`, and
   `riscv32imac-unknown-none-elf`.
 
-[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/melastmohican/epdsi/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/melastmohican/epdsi/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/melastmohican/epdsi/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/melastmohican/epdsi/compare/v0.8.1...v0.9.0
