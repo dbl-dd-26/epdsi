@@ -629,6 +629,7 @@ pub mod controllers;
 pub mod driver;
 pub mod graphics;
 pub mod panels;
+pub mod policy;
 pub mod prelude;
 pub mod traits;
 

@@ -27,6 +27,7 @@ pub use crate::panels::{
     GDEM0213B74, GDEM037F51, GDEP073E01, GDEQ0426T82, GDEW0215T12, GDEY0213F51, GDEY0213F52,
     GDEY0266T90, GDEY0266T90H, GDEY0266Z90, GDEY037T03, SE0352N14TNGA0, ZJY122250_0213AJH_E5,
 };
+pub use crate::policy::{RefreshKind, RefreshPolicy};
 pub use crate::traits::{
     ColorChannel, ColorMode, EpdController, EpdPanel, Gray4Registers, SevenColor,
 };
