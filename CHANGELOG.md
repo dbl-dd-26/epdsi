@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-10-22
+
 ### Changed
 
 - `Ed2208Controller::trigger_partial_refresh` now requires `x` and `w` to be multiples of 4, where it used to accept any even value. On a `GDEP073E01` (22 Oct 2026, vertical-stripe test) a 386 px wide window and a window starting at `x` = 2 both sheared the picture, while `x` = 4 with `w` = 388 was clean. Calls that passed an even value that is not a multiple of 4 used to return `Ok` and draw a sheared window; they now return `InvalidPartialWindowAlignment`.
@@ -827,7 +829,8 @@ Initial release.
 - `no_std` builds verified against `thumbv6m-none-eabi`, `thumbv7em-none-eabihf`, and
   `riscv32imac-unknown-none-elf`.
 
-[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/melastmohican/epdsi/compare/v0.9.4...HEAD
+[0.9.4]: https://github.com/melastmohican/epdsi/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/melastmohican/epdsi/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/melastmohican/epdsi/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/melastmohican/epdsi/compare/v0.9.0...v0.9.1
