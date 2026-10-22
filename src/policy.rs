@@ -103,7 +103,8 @@ impl RefreshPolicy {
     /// A policy that asks for a full refresh after `partials_between_full` partial refreshes.
     ///
     /// With 5, the sequence is five partial refreshes, one full, then five partial again. With 0,
-    /// every refresh is a full one.
+    /// every refresh is a full one. Some libraries use 0 to switch the limit off, so to never ask
+    /// for a full refresh, pass `u32::MAX` or do not call the policy.
     pub const fn new(partials_between_full: u32) -> Self {
         RefreshPolicy {
             partials_between_full,
