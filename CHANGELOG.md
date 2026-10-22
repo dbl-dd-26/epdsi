@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `Ed2208Controller::trigger_partial_refresh` now requires `x` and `w` to be multiples of 4, where it used to accept any even value. On a `GDEP073E01` (22 Oct 2026, vertical-stripe test) a 386 px wide window and a window starting at `x` = 2 both sheared the picture, while `x` = 4 with `w` = 388 was clean. Calls that passed an even value that is not a multiple of 4 used to return `Ok` and draw a sheared window; they now return `InvalidPartialWindowAlignment`.
+
 ## [0.9.3] - 2026-10-21
 
 ### Added

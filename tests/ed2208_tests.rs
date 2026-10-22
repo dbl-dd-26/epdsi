@@ -189,7 +189,7 @@ epd_test!(
     sync(feature = "blocking", keep_self),
     async(not(feature = "blocking"), keep_self)
 )]
-async fn ed2208_trigger_partial_refresh_rejects_odd_alignment_body() {
+async fn ed2208_trigger_partial_refresh_rejects_unaligned_window_body() {
     let bus_backend = RecordingSpiBus::new();
     let dc = TestDc(&bus_backend);
     let mut delay = DummyDelay;
@@ -221,6 +221,25 @@ async fn ed2208_trigger_partial_refresh_rejects_odd_alignment_body() {
         EpdBusError::InvalidPartialWindowAlignment { x: 0, width: 201 }
     );
 
+    // Even but not a multiple of 4: bench-confirmed to shear on GDEP073E01 (x = 2 with w = 388,
+    // and w = 386 with x = 4).
+    let err = controller
+        .trigger_partial_refresh(&mut bus, &mut delay, 2, 0, 388, 80)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err,
+        EpdBusError::InvalidPartialWindowAlignment { x: 2, width: 388 }
+    );
+    let err = controller
+        .trigger_partial_refresh(&mut bus, &mut delay, 4, 0, 386, 80)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        err,
+        EpdBusError::InvalidPartialWindowAlignment { x: 4, width: 386 }
+    );
+
     // Zero width/height.
     let err = controller
         .trigger_partial_refresh(&mut bus, &mut delay, 0, 0, 0, 80)
@@ -233,8 +252,8 @@ async fn ed2208_trigger_partial_refresh_rejects_odd_alignment_body() {
 }
 
 epd_test!(
-    test_ed2208_trigger_partial_refresh_rejects_odd_alignment,
-    ed2208_trigger_partial_refresh_rejects_odd_alignment_body
+    test_ed2208_trigger_partial_refresh_rejects_unaligned_window,
+    ed2208_trigger_partial_refresh_rejects_unaligned_window_body
 );
 
 #[maybe_async_cfg::maybe(

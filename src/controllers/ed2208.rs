@@ -172,9 +172,12 @@ impl Ed2208Controller {
     /// [`EpdController::trigger_refresh`] to restore the rest of the panel; do not chain partial
     /// refreshes back to back expecting the untouched area to hold.
     ///
-    /// Returns [`EpdBusError::InvalidPartialWindowAlignment`] if `x` or `w` is odd, or either is
-    /// zero: the controller's 4bpp I4 RAM format packs two pixels per byte, so an unaligned
-    /// window would split a byte across the boundary. Returns [`EpdBusError::InvalidWindow`] if
+    /// Returns [`EpdBusError::InvalidPartialWindowAlignment`] if `x` or `w` is not a multiple of
+    /// 4, or `w` or `h` is zero. The 4bpp I4 RAM format packs two pixels per byte, and the
+    /// controller wants an even number of bytes per row and an even start byte. Bench-confirmed
+    /// on `GDEP073E01` (22 Oct 2026, vertical stripes): `w` = 386 (193 bytes per row) and
+    /// `x` = 2 with `w` = 388 both shear the picture, while `x` = 4 with `w` = 388 is clean.
+    /// Zephyr PR #121618 reports the same multiple-of-4 rule. Returns [`EpdBusError::InvalidWindow`] if
     /// the window falls outside the panel this controller was constructed for.
     #[allow(clippy::type_complexity)]
     pub async fn trigger_partial_refresh<SPI, DC, RST, BUSY, DELAY: DelayNs>(
@@ -192,7 +195,7 @@ impl Ed2208Controller {
         RST: OutputPin,
         BUSY: InputPin + Wait,
     {
-        if x % 2 != 0 || w % 2 != 0 || w == 0 || h == 0 {
+        if x % 4 != 0 || w % 4 != 0 || w == 0 || h == 0 {
             return Err(EpdBusError::InvalidPartialWindowAlignment { x, width: w });
         }
         let x_end = x + w - 1;

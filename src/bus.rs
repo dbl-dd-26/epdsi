@@ -66,10 +66,10 @@ pub enum ValidationError {
     },
     /// A partial-window refresh named an odd `x` or `width`, or a zero `width`/`height`.
     ///
-    /// `Ed2208Controller::trigger_partial_refresh`'s 4bpp I4 RAM format packs two pixels per
-    /// byte, so a window whose horizontal start or width isn't byte-aligned would split a byte
-    /// across the window boundary. Confirmed as a real constraint by Zephyr's independent
-    /// `ed2208_gca` driver, not an `epdsi`-specific restriction.
+    /// `Ed2208Controller::trigger_partial_refresh` needs the horizontal start and the width to
+    /// be multiples of 4 pixels. The 4bpp I4 RAM format packs two pixels per byte and the
+    /// controller wants an even byte count per row and an even start byte, so other values
+    /// shear the picture. Bench-confirmed on `GDEP073E01` and reported by Zephyr's PR #121618.
     InvalidPartialWindowAlignment {
         /// X start coordinate the caller passed to `trigger_partial_refresh`.
         x: u32,
@@ -133,10 +133,10 @@ pub enum EpdBusError<SPIE, DCE, RSTE, BUSYE> {
     },
     /// A partial-window refresh named an odd `x` or `width`, or a zero `width`/`height`.
     ///
-    /// `Ed2208Controller::trigger_partial_refresh`'s 4bpp I4 RAM format packs two pixels per
-    /// byte, so a window whose horizontal start or width isn't byte-aligned would split a byte
-    /// across the window boundary. Confirmed as a real constraint by Zephyr's independent
-    /// `ed2208_gca` driver, not an `epdsi`-specific restriction.
+    /// `Ed2208Controller::trigger_partial_refresh` needs the horizontal start and the width to
+    /// be multiples of 4 pixels. The 4bpp I4 RAM format packs two pixels per byte and the
+    /// controller wants an even byte count per row and an even start byte, so other values
+    /// shear the picture. Bench-confirmed on `GDEP073E01` and reported by Zephyr's PR #121618.
     InvalidPartialWindowAlignment {
         /// X start coordinate the caller passed to `trigger_partial_refresh`.
         x: u32,
