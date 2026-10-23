@@ -949,7 +949,9 @@ where
             bus.wait_busy_with_delay(delay, true).await?;
 
             // Good Display's `EPD_HW_Init_Fast()` for the SSD1685 `GDEY0266T90H` writes `6E 00`
-            // (110 °C); the SSD1680 demos write `5A 00` (90 °C).
+            // (110 °C). The `GDEY0266T90` and `GDEY0266Z90` SSD1680 demos write `5A 00` (90 °C),
+            // which the SSD1680 and SSD1681 arms use. The `GDEM0213B74` demo writes `64 00`
+            // (100 °C), so that panel's fast pass runs 10 °C off its own vendor.
             let fast_temperature = match self.variant {
                 Ssd168xVariant::Ssd1685 => 0x6E,
                 Ssd168xVariant::Ssd1680 | Ssd168xVariant::Ssd1681 => 0x5A,
