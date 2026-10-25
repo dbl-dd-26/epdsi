@@ -37,16 +37,17 @@
 //! | [`Ssd1681Controller`] | [`GDEM0154Z90`] | 200 × 200 | Tri-Color |
 //! | [`Ssd1680Controller`] | [`GDEM0213B74`], [`GDEY0266Z90`], [`GDEY0266T90`] | 122 × 250, 152 × 296, 152 × 296 | Monochrome, Tri-Color |
 //! | [`Jd79661Controller`] | [`ZJY122250_0213AJH_E5`] / [`GDEY0213F51`] | 122 × 250 | Quad-Color |
-//! | [`Uc8253Controller`] | [`GDEY037T03`], [`SE0352N14TNGA0`] | 240 × 416, 240 × 360 | Monochrome, Tri-Color |
+//! | [`Uc8253Controller`] | [`GDEY037T03`], [`SE0352N14TNGA0`], [`Uc8252c213`] | 240 × 416, 240 × 360, 122 × 250 | Monochrome, Tri-Color, Monochrome |
 //! | [`Ssd1677Controller`] | [`GDEQ0426T82`] | 800 × 480 | Monochrome |
 //! | [`Ed2208Controller`] | [`GDEP073E01`] | 800 × 480 | Spectra 6 (4 bpp) |
 //! | [`PervasiveBwController`] | [`E2266KS0C1`], [`E2290KS0F1`] | 152 × 296, 168 × 384 | Monochrome |
 //! | [`PervasiveBwryController`] | [`E2154QS0F1`], [`E2417QS0A3`] | 152 × 152, 400 × 300 | Quad-Color (Spectra-4) |
 //!
 //! [`Ssd1680Controller`] and [`Ssd1681Controller`] are thin wrappers over the shared
-//! [`Ssd168xController`]. [`Uc8253Controller`] carries two panel register profiles selected by
-//! `Uc8253Variant`, since the two UC8253 panels disagree on init, RAM plane order and refresh —
-//! [`SE0352N14TNGA0`] needs `Uc8253Variant::Se0352n14`. Many panels also carry
+//! [`Ssd168xController`]. [`Uc8253Controller`] carries three panel register profiles selected by
+//! `Uc8253Variant`, since the UC8253 panels disagree on init, RAM plane order and refresh —
+//! [`SE0352N14TNGA0`] needs `Uc8253Variant::Se0352n14` and [`Uc8252c213`] needs
+//! `Uc8253Variant::Uc8252c213`. Many panels also carry
 //! vendor-parity aliases, such as
 //! `EPD_266_KS_0C` for [`E2266KS0C1`] or `GxEPD2_370_GDEY037T03` for [`GDEY037T03`].
 //!
@@ -192,6 +193,7 @@
 //! [`GDEY0213F51`]: panels::GDEY0213F51
 //! [`GDEY037T03`]: panels::GDEY037T03
 //! [`SE0352N14TNGA0`]: panels::SE0352N14TNGA0
+//! [`Uc8252c213`]: panels::Uc8252c213
 //! [`GDEQ0426T82`]: panels::GDEQ0426T82
 //! [`GDEP073E01`]: panels::GDEP073E01
 //! [`E2266KS0C1`]: panels::E2266KS0C1

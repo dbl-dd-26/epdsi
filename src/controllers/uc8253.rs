@@ -91,6 +91,16 @@ pub enum Uc8253Variant {
     /// silently ignored, BUSY never asserts, and the refresh appears to complete instantly having
     /// drawn nothing.
     Se0352n14,
+    /// 2.13" `UC8252C213` profile (panel-vendor LUT-from-OTP flow).
+    ///
+    /// Monochrome. `init_sequence` performs a hardware reset only; the panel's OTP supplies mode,
+    /// resolution and waveform. `trigger_refresh` issues explicit `PON` → `DRF` → `POF`
+    /// (`0x04` → `0x12` → `0x02`), matching the panel datasheet's normal operation flow. The
+    /// UC8252C command set has no Auto Sequence command, so the UC8253 `AUTO` (`0x17`) shortcut
+    /// must not be used here.
+    ///
+    /// Because power sequencing is explicit, [`Uc8253RefreshMode`] has no effect on this profile.
+    Uc8252c213,
 }
 
 /// Display refresh operating mode for the UC8253 controller.
@@ -181,7 +191,7 @@ impl Uc8253Controller {
     fn plane_command(&self, channel: ColorChannel) -> u8 {
         let is_black_white = matches!(channel, ColorChannel::BlackWhite);
         match self.variant {
-            Uc8253Variant::Gdey037t03 => {
+            Uc8253Variant::Gdey037t03 | Uc8253Variant::Uc8252c213 => {
                 if is_black_white {
                     cmd::WRITE_NEW_DATA
                 } else {
@@ -356,6 +366,11 @@ where
                     .await?;
                 bus.wait_busy_with_delay(delay, false).await?;
             }
+            Uc8253Variant::Uc8252c213 => {
+                // The panel datasheet's LUT-from-OTP boot flow: a hardware reset only. No register
+                // init is issued — the panel's OTP supplies mode, resolution and waveform.
+                bus.hard_reset(delay, 10).await?;
+            }
         }
         Ok(())
     }
@@ -451,6 +466,28 @@ where
             bus.send_command(cmd::DISPLAY_REFRESH).await?;
             bus.wait_busy_assert(delay, false, BUSY_ASSERT_TIMEOUT_MS)
                 .await?;
+            bus.wait_busy_with_delay(delay, false).await?;
+            return self.close_window(bus).await;
+        }
+
+        if self.variant == Uc8253Variant::Uc8252c213 {
+            // Panel datasheet LUT-from-OTP flow, issued explicitly: PON → DRF → POF. The UC8252C
+            // has no Auto Sequence command (that is UC8253-only), so `0x17` is not available here.
+            bus.send_command(cmd::POWER_ON).await?;
+            // PON also asserts BUSY when it starts, so wait for the edge first — otherwise a fast
+            // host can read idle and issue DRF while the booster is still ramping.
+            bus.wait_busy_assert(delay, false, BUSY_ASSERT_TIMEOUT_MS)
+                .await?;
+            bus.wait_busy_with_delay(delay, false).await?;
+
+            bus.send_command(cmd::DISPLAY_REFRESH).await?;
+            // Same edge wait for DRF: otherwise the refresh can be reported complete before it
+            // has started.
+            bus.wait_busy_assert(delay, false, BUSY_ASSERT_TIMEOUT_MS)
+                .await?;
+            bus.wait_busy_with_delay(delay, false).await?;
+
+            bus.send_command(cmd::POWER_OFF).await?;
             bus.wait_busy_with_delay(delay, false).await?;
             return self.close_window(bus).await;
         }

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Uc8252c213` (`UC8252C213`), the 2.13" **monochrome** (122 × 250) e-Paper panel on the UC8253
+  controller, with a dedicated `Uc8253Variant::Uc8252c213` register profile. The profile follows
+  the panel datasheet's LUT-from-OTP flow: `init` is a hardware reset only (no register writes —
+  mode, resolution and waveform come from the panel's OTP), and `refresh` issues explicit
+  PON → DRF → POF (`0x04` → `0x12` → `0x02`) with BUSY-assert/complete waits. The UC8252C has no
+  Auto Sequence command (`0x17`), unlike the UC8253, so the refresh cannot use that shortcut.
+  Like `GDEY037T03` it is black/white only, but the controller still has
+  two RAM planes: `ColorChannel::BlackWhite` maps to `WRITE_NEW_DATA` (`0x13`) and
+  `ColorChannel::RedYellow` to `WRITE_OLD_DATA` (`0x10`), so a full refresh must write the same
+  image to both (old first). A white background clears with `0xFF`. Its 122 px rows are padded to
+  16 bytes of controller RAM (`122.div_ceil(8)`), giving 4,000 bytes per frame — the same RAM
+  geometry as `GDEM0213B74`. Active-Low BUSY, as for the other UC8253 panels.
+
 ## [0.3.1] - 2026-09-12
 
 ### Fixed

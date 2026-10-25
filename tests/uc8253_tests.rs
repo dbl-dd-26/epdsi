@@ -664,3 +664,113 @@ epd_test!(
     test_uc8253_fast_update_restores_panel_setting_with_settling_delay,
     uc8253_fast_update_restores_panel_setting_with_settling_delay_body
 );
+
+#[test]
+fn test_uc8252c213_panel_dimensions() {
+    // 122 x 250 is the raster, not the landscape 250 x 122 viewing orientation.
+    assert_eq!(Uc8252c213::WIDTH, 122);
+    assert_eq!(Uc8252c213::HEIGHT, 250);
+    assert_eq!(Uc8252c213::COLOR_MODE, ColorMode::BlackWhite);
+    // The all-caps spelling names the same panel.
+    assert_eq!(UC8252C213::WIDTH, 122);
+    assert_eq!(UC8252C213::HEIGHT, 250);
+}
+
+/// The 2.13" `UC8252C213` profile follows the panel datasheet's LUT-from-OTP boot flow: a
+/// hardware reset only, with **no** SPI register writes. Everything else — mode, resolution,
+/// waveform — is supplied by the panel's OTP.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8252c213_init_sequence_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let dc = TestDc(&bus_backend);
+    // BUSY is not polled during init, so its level is irrelevant here.
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Uc8252c213);
+    let mut delay = DummyDelay;
+
+    controller
+        .init_sequence(&mut bus, &mut delay)
+        .await
+        .unwrap();
+
+    assert!(
+        bus_backend.records.borrow().is_empty(),
+        "UC8252C213 init must rely on OTP and emit no SPI commands"
+    );
+}
+epd_test!(test_uc8252c213_init_sequence, uc8252c213_init_sequence_body);
+
+/// `Uc8253Variant::Uc8252c213` refreshes with the panel datasheet's explicit normal-operation
+/// sequence: PON (`0x04`) → DRF (`0x12`) → POF (`0x02`). The UC8252C has no Auto Sequence
+/// command, so `0x17` must not be emitted.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8252c213_refresh_explicit_power_sequence_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let dc = TestDc(&bus_backend);
+    let mut delay = DummyDelay;
+
+    // Active-low BUSY: `true` (high) means idle, so the BUSY waits return immediately.
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let mut controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Uc8252c213);
+
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        bus_backend.records.borrow().clone(),
+        vec![
+            SpiRecord::Command(0x04),
+            SpiRecord::Command(0x12),
+            SpiRecord::Command(0x02),
+        ]
+    );
+}
+epd_test!(
+    test_uc8252c213_refresh_explicit_power_sequence,
+    uc8252c213_refresh_explicit_power_sequence_body
+);
+
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8252c213_driver_smoke_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let dc = TestDc(&bus_backend);
+    let mut delay = DummyDelay;
+
+    // Active-low BUSY: `true` (high) means idle.
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Uc8252c213);
+    let mut driver = EpdBuilder::<_, Uc8252c213>::new(controller).build(bus);
+
+    assert_eq!(driver.width(), 122);
+    assert_eq!(driver.height(), 250);
+
+    driver.init(&mut delay).await.expect("UC8252C213 init failed");
+    // Monochrome UC8253 convention: 0xFF is white on the Black/White plane.
+    driver
+        .clear_frame(ColorChannel::BlackWhite, 0xFF)
+        .await
+        .expect("UC8252C213 black/white clear failed");
+    driver
+        .refresh(&mut delay)
+        .await
+        .expect("UC8252C213 refresh failed");
+    driver
+        .sleep(&mut delay)
+        .await
+        .expect("UC8252C213 sleep failed");
+}
+epd_test!(test_uc8252c213_driver_smoke, uc8252c213_driver_smoke_body);
