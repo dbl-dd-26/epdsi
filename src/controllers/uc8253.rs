@@ -2,21 +2,82 @@
 
 #[cfg(feature = "blocking")]
 use embedded_hal::delay::DelayNs;
-#[cfg(not(feature = "blocking"))]
-use embedded_hal_async::delay::DelayNs;
 #[cfg(feature = "blocking")]
 use embedded_hal::spi::SpiDevice;
 #[cfg(not(feature = "blocking"))]
+use embedded_hal_async::delay::DelayNs;
+#[cfg(not(feature = "blocking"))]
 use embedded_hal_async::spi::SpiDevice;
 
-use embedded_hal::digital::{InputPin, OutputPin};
 #[cfg(feature = "blocking")]
 use embedded_hal::digital::InputPin as Wait;
+use embedded_hal::digital::{InputPin, OutputPin};
 #[cfg(not(feature = "blocking"))]
 use embedded_hal_async::digital::Wait;
 
 use crate::bus::{EpdBusError, SpiBusWrapper};
 use crate::traits::{ColorChannel, EpdController};
+
+const LUT_R20_DU: [u8; 42] = // VCOM 10×8=80bytes
+    [
+        0x01, 0x0f, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R21_DU: [u8; 42] = // W2W 7×8=56bytes
+    [
+        0x01, 0x0f, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R22_DU: [u8; 42] = // B2W 10×8=80bytes
+    [
+        0x01, 0x8f, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R23_DU: [u8; 42] = // W2B 10×8=80bytes
+    [
+        0x01, 0x4f, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R24_DU: [u8; 42] = // B2B 10×8=80bytes
+    [
+        0x01, 0x0f, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R20_GC: [u8; 42] = // VCOM 10×8=80bytes
+    [
+        0x01, 0x0f, 0x0f, 0x0f, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R21_GC: [u8; 42] = // W2W 7×8=56bytes
+    [
+        0x01, 0x4f, 0x8f, 0x0f, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R22_GC: [u8; 42] = // B2W 10×8=80bytes
+    [
+        0x01, 0x0f, 0x8f, 0x0f, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R23_GC: [u8; 42] = // W2B 10×8=80bytes
+    [
+        0x01, 0x4f, 0x8f, 0x4f, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
+const LUT_R24_GC: [u8; 42] = // B2B 10×8=80bytes
+    [
+        0x01, 0x0f, 0x8f, 0x4f, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ];
 
 /// UC8253 Command Definitions
 pub mod cmd {
@@ -91,6 +152,17 @@ pub enum Uc8253Variant {
     /// silently ignored, BUSY never asserts, and the refresh appears to complete instantly having
     /// drawn nothing.
     Se0352n14,
+    /// 2.13" `SFE213ZHBW` profile.
+    ///
+    /// Monochrome. `init_sequence` performs a 30 ms hardware reset, then writes the panel's
+    /// register init (`PANEL_SETTING`, `0x01`, `0x03`, `BOOSTER_SOFT_START`, `0x30`, `0x60`,
+    /// `0x82`, `0xE3`, `0x41`, `RESOLUTION` 122 × 250, `0x65`), clears both RAM planes to white,
+    /// then loads the GC LUTs twice, each followed by an Auto Sequence trigger (`0x17`, `0xA5`).
+    /// `trigger_refresh` loads the DU LUTs and triggers `0x17` the same way. The LUT2/LUT3
+    /// register order alternates on every load.
+    ///
+    /// [`Uc8253RefreshMode`] has no effect on this profile.
+    Sfe213zhbw,
 }
 
 /// Display refresh operating mode for the UC8253 controller.
@@ -120,6 +192,7 @@ pub struct Uc8253Controller {
     /// Last window set via `set_window`, tracked so `trigger_refresh` knows whether to close
     /// partial-window mode (`PARTIAL_OUT`) before refreshing.
     window: Option<(u32, u32, u32, u32)>,
+    lut_flag: bool,
 }
 
 impl Uc8253Controller {
@@ -133,6 +206,7 @@ impl Uc8253Controller {
             variant: Uc8253Variant::default(),
             refresh_mode: Uc8253RefreshMode::default(),
             window: None,
+            lut_flag: false,
         }
     }
 
@@ -181,7 +255,7 @@ impl Uc8253Controller {
     fn plane_command(&self, channel: ColorChannel) -> u8 {
         let is_black_white = matches!(channel, ColorChannel::BlackWhite);
         match self.variant {
-            Uc8253Variant::Gdey037t03 => {
+            Uc8253Variant::Gdey037t03 | Uc8253Variant::Sfe213zhbw => {
                 if is_black_white {
                     cmd::WRITE_NEW_DATA
                 } else {
@@ -197,7 +271,6 @@ impl Uc8253Controller {
             }
         }
     }
-
 }
 
 #[maybe_async_cfg::maybe(
@@ -287,6 +360,32 @@ impl Uc8253Controller {
         bus.send_command_with_data(cmd::PANEL_SETTING, &[0x1F, 0x0D])
             .await
     }
+
+    #[allow(clippy::type_complexity)]
+    async fn lut_gc<SPI, DC, RST, BUSY>(
+        &mut self,
+        bus: &mut SpiBusWrapper<SPI, DC, RST, BUSY>,
+    ) -> Result<(), EpdBusError<SPI::Error, DC::Error, RST::Error, BUSY::Error>>
+    where
+        SPI: SpiDevice,
+        DC: OutputPin,
+        RST: OutputPin,
+        BUSY: InputPin,
+    {
+        bus.send_command_with_data(0x20, &LUT_R20_GC).await?;
+        bus.send_command_with_data(0x21, &LUT_R21_GC).await?;
+        bus.send_command_with_data(0x24, &LUT_R24_GC).await?;
+        if !self.lut_flag {
+            bus.send_command_with_data(0x22, &LUT_R22_GC).await?;
+            bus.send_command_with_data(0x23, &LUT_R23_GC).await?;
+            self.lut_flag = true;
+        } else {
+            bus.send_command_with_data(0x23, &LUT_R22_GC).await?;
+            bus.send_command_with_data(0x22, &LUT_R23_GC).await?;
+            self.lut_flag = false;
+        }
+        Ok(())
+    }
 }
 
 #[maybe_async_cfg::maybe(
@@ -354,6 +453,55 @@ where
                 .await?;
                 bus.send_command_with_data(cmd::BOOSTER_SOFT_START, &[0x2F, 0x2F, 0x2E])
                     .await?;
+                bus.wait_busy_with_delay(delay, false).await?;
+            }
+            Uc8253Variant::Sfe213zhbw => {
+                // init
+                bus.hard_reset(delay, 30).await?;
+
+                bus.send_command_with_data(cmd::PANEL_SETTING, &[0xFF, 0x0A])
+                    .await?;
+                bus.send_command_with_data(0x01, &[0x03, 0x00, 0x3F, 0x3F, 0x03])
+                    .await?;
+                bus.send_command_with_data(0x03, &[0x10]).await?;
+                bus.send_command_with_data(cmd::BOOSTER_SOFT_START, &[0x27, 0x27, 0x2F])
+                    .await?;
+
+                bus.send_command_with_data(0x30, &[0x09]).await?;
+                bus.send_command_with_data(0x60, &[0x22]).await?;
+                bus.send_command_with_data(0x82, &[0x09]).await?;
+
+                bus.send_command_with_data(0xE3, &[0x00]).await?;
+                bus.send_command_with_data(0x41, &[0x00]).await?;
+
+                bus.send_command_with_data(0x61, &[0x80, 0x00, 0xFA])
+                    .await?;
+                bus.send_command_with_data(0x65, &[0x00, 0x00, 0x00])
+                    .await?;
+
+                // clear frame
+                self.write_frame_pattern(
+                    bus,
+                    ColorChannel::RedYellow,
+                    0xFF,
+                    (self.width.div_ceil(8) * self.height) as usize,
+                )
+                .await?;
+
+                self.write_frame_pattern(
+                    bus,
+                    ColorChannel::BlackWhite,
+                    0xFF,
+                    (self.width.div_ceil(8) * self.height) as usize,
+                )
+                .await?;
+
+                // lut gc
+                self.lut_gc(bus).await?;
+                bus.send_command_with_data(0x17, &[0xA5]).await?;
+                bus.wait_busy_with_delay(delay, false).await?;
+                self.lut_gc(bus).await?;
+                bus.send_command_with_data(0x17, &[0xA5]).await?;
                 bus.wait_busy_with_delay(delay, false).await?;
             }
         }
@@ -455,6 +603,26 @@ where
             return self.close_window(bus).await;
         }
 
+        if self.variant == Uc8253Variant::Sfe213zhbw {
+            //lut-du
+            bus.send_command_with_data(0x20, &LUT_R20_DU).await?;
+            bus.send_command_with_data(0x21, &LUT_R21_DU).await?;
+            bus.send_command_with_data(0x24, &LUT_R24_DU).await?;
+            if !self.lut_flag {
+                bus.send_command_with_data(0x22, &LUT_R22_DU).await?;
+                bus.send_command_with_data(0x23, &LUT_R23_DU).await?;
+                self.lut_flag = true;
+            } else {
+                bus.send_command_with_data(0x23, &LUT_R22_DU).await?;
+                bus.send_command_with_data(0x22, &LUT_R23_DU).await?;
+                self.lut_flag = false;
+            }
+
+            // refresh
+            bus.send_command_with_data(0x17, &[0xA5]).await?;
+            return self.close_window(bus).await;
+        }
+
         let is_fast = matches!(
             self.refresh_mode,
             Uc8253RefreshMode::FastFull | Uc8253RefreshMode::FastPartial
@@ -468,8 +636,7 @@ where
             let temp = if is_partial { 0x6E } else { 0x5A };
             bus.send_command_with_data(cmd::CASCADE_SETTING, &[0x02])
                 .await?;
-            bus.send_command_with_data(cmd::FORCE_TEMP, &[temp])
-                .await?;
+            bus.send_command_with_data(cmd::FORCE_TEMP, &[temp]).await?;
         }
 
         let cdi = if is_partial { 0xD7 } else { 0x97 };

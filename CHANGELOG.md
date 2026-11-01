@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `SFE213ZHBW`, the 2.13" **monochrome** (122 × 250) e-Paper panel on the UC8253
+  controller, with a dedicated `Uc8253Variant::Sfe213zhbw` register profile. `init` performs a
+  hardware reset, writes the register set, clears both planes and loads the GC LUTs. `refresh`
+  loads the DU LUTs. Both are triggered with the Auto Sequence command (`0x17`).
+  Like `GDEY037T03` it is black/white only, but the controller still has
+  two RAM planes: `ColorChannel::BlackWhite` maps to `WRITE_NEW_DATA` (`0x13`) and
+  `ColorChannel::RedYellow` to `WRITE_OLD_DATA` (`0x10`), so a full refresh must write the same
+  image to both (old first). A white background clears with `0xFF`. Its 122 px rows are padded to
+  16 bytes of controller RAM (`122.div_ceil(8)`), giving 4,000 bytes per frame — the same RAM
+  geometry as `GDEM0213B74`. Active-Low BUSY, as for the other UC8253 panels.
+
 ## [0.3.1] - 2026-09-12
 
 ### Fixed

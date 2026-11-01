@@ -7,10 +7,10 @@ use core::fmt::Debug;
 // bound in this file to the right trait per feature, with no per-identifier macro mapping needed.
 #[cfg(feature = "blocking")]
 use embedded_hal::delay::DelayNs;
-#[cfg(not(feature = "blocking"))]
-use embedded_hal_async::delay::DelayNs;
 #[cfg(feature = "blocking")]
 use embedded_hal::spi::SpiDevice;
+#[cfg(not(feature = "blocking"))]
+use embedded_hal_async::delay::DelayNs;
 #[cfg(not(feature = "blocking"))]
 use embedded_hal_async::spi::SpiDevice;
 
@@ -144,7 +144,7 @@ where
         reset_duration_ms: u32,
     ) -> SpiBusResult<SPI::Error, DC::Error, RST::Error, BUSY::Error> {
         self.rst.set_high().map_err(EpdBusError::Reset)?;
-        delay.delay_ms(5).await;
+        delay.delay_ms(10).await;
         self.rst.set_low().map_err(EpdBusError::Reset)?;
         delay.delay_ms(reset_duration_ms).await;
         self.rst.set_high().map_err(EpdBusError::Reset)?;

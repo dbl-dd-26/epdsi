@@ -664,3 +664,159 @@ epd_test!(
     test_uc8253_fast_update_restores_panel_setting_with_settling_delay,
     uc8253_fast_update_restores_panel_setting_with_settling_delay_body
 );
+
+#[test]
+fn test_uc8252c213_panel_dimensions() {
+    // 122 x 250 is the raster, not the landscape 250 x 122 viewing orientation.
+    assert_eq!(Uc8252c213::WIDTH, 122);
+    assert_eq!(Uc8252c213::HEIGHT, 250);
+    assert_eq!(Uc8252c213::COLOR_MODE, ColorMode::BlackWhite);
+    // The all-caps spelling names the same panel.
+    assert_eq!(UC8252C213::WIDTH, 122);
+    assert_eq!(UC8252C213::HEIGHT, 250);
+}
+
+/// Splits the recorded SPI traffic into `(command, payload)` pairs, so the assertions can check
+/// the command order and each payload without listing every byte of the frame buffers.
+fn command_payloads(records: &[SpiRecord]) -> Vec<(u8, Vec<u8>)> {
+    let mut out: Vec<(u8, Vec<u8>)> = Vec::new();
+    for record in records {
+        match record {
+            SpiRecord::Command(c) => out.push((*c, Vec::new())),
+            SpiRecord::Data(d) => {
+                if let Some(last) = out.last_mut() {
+                    last.1.extend_from_slice(d);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The 2.13" `UC8252C213` profile runs its own register init, clears both RAM planes to white,
+/// then loads the GC LUTs twice (ping-ponging LUT2/LUT3 order) with an Auto Sequence trigger
+/// after each.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8252c213_init_sequence_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let dc = TestDc(&bus_backend);
+    // BUSY is not polled during init, so its level is irrelevant here.
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, DummyPin);
+    let mut controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Sfe213zhbw);
+    let mut delay = DummyDelay;
+
+    controller
+        .init_sequence(&mut bus, &mut delay)
+        .await
+        .unwrap();
+
+    let records = bus_backend.records.borrow().clone();
+    let pairs = command_payloads(&records);
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(
+        commands,
+        vec![
+            0x00, 0x01, 0x03, 0x06, 0x30, 0x60, 0x82, 0xE3, 0x41, 0x61, 0x65, // register init
+            0x10, 0x13, // clear both planes
+            0x20, 0x21, 0x24, 0x22, 0x23, 0x17, // LUT GC, then Auto Sequence
+            0x20, 0x21, 0x24, 0x23, 0x22, 0x17, // LUT GC again, LUT2/LUT3 swapped
+        ]
+    );
+
+    assert_eq!(pairs[0].1, vec![0xFF, 0x0A]);
+    assert_eq!(pairs[1].1, vec![0x03, 0x00, 0x3F, 0x3F, 0x03]);
+    assert_eq!(pairs[9].1, vec![0x80, 0x00, 0xFA]);
+    assert_eq!(pairs[10].1, vec![0x00, 0x00, 0x00]);
+    // 122 px rows padded to 16 bytes each, 250 rows: 4,000 bytes per plane, white (0xFF).
+    assert_eq!(pairs[11].1, vec![0xFF; 4000]);
+    assert_eq!(pairs[12].1, vec![0xFF; 4000]);
+    for &index in &[13, 14, 15, 16, 17, 19, 20, 21, 22, 23] {
+        assert_eq!(pairs[index].1.len(), 42, "LUT payload at index {index}");
+    }
+    assert_eq!(pairs[18].1, vec![0xA5]);
+    assert_eq!(pairs[24].1, vec![0xA5]);
+}
+epd_test!(test_uc8252c213_init_sequence, uc8252c213_init_sequence_body);
+
+/// `Uc8253Variant::Sfe213zhbw` refreshes by loading the DU LUTs and triggering the Auto
+/// Sequence (`0x17`, payload `0xA5`). The LUT2/LUT3 order alternates on every refresh.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8252c213_refresh_lut_du_sequence_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let dc = TestDc(&bus_backend);
+    let mut delay = DummyDelay;
+
+    // Active-low BUSY: `true` (high) means idle, so the BUSY waits return immediately.
+    let mut bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let mut controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Sfe213zhbw);
+
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(commands, vec![0x20, 0x21, 0x24, 0x22, 0x23, 0x17]);
+    for &index in &[0, 1, 2, 3, 4] {
+        assert_eq!(pairs[index].1.len(), 42, "LUT payload at index {index}");
+    }
+    assert_eq!(pairs[5].1, vec![0xA5]);
+
+    bus_backend.records.borrow_mut().clear();
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(commands, vec![0x20, 0x21, 0x24, 0x23, 0x22, 0x17]);
+}
+epd_test!(
+    test_uc8252c213_refresh_lut_du_sequence,
+    uc8252c213_refresh_lut_du_sequence_body
+);
+
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8252c213_driver_smoke_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let dc = TestDc(&bus_backend);
+    let mut delay = DummyDelay;
+
+    // Active-low BUSY: `true` (high) means idle.
+    let bus = SpiBusWrapper::new(&bus_backend, dc, DummyPin, FixedPin(true));
+    let controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Sfe213zhbw);
+    let mut driver = EpdBuilder::<_, Uc8252c213>::new(controller).build(bus);
+
+    assert_eq!(driver.width(), 122);
+    assert_eq!(driver.height(), 250);
+
+    driver.init(&mut delay).await.expect("UC8252C213 init failed");
+    // Monochrome UC8253 convention: 0xFF is white on the Black/White plane.
+    driver
+        .clear_frame(ColorChannel::BlackWhite, 0xFF)
+        .await
+        .expect("UC8252C213 black/white clear failed");
+    driver
+        .refresh(&mut delay)
+        .await
+        .expect("UC8252C213 refresh failed");
+    driver
+        .sleep(&mut delay)
+        .await
+        .expect("UC8252C213 sleep failed");
+}
+epd_test!(test_uc8252c213_driver_smoke, uc8252c213_driver_smoke_body);
