@@ -19,6 +19,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   image to both (old first). A white background clears with `0xFF`. Its 122 px rows are padded to
   16 bytes of controller RAM (`122.div_ceil(8)`), giving 4,000 bytes per frame — the same RAM
   geometry as `GDEM0213B74`. Active-Low BUSY, as for the other UC8253 panels.
+- Grayscale for `SFE213ZHBW` (`Uc8253Variant::Sfe213zhbw`), with waveforms computed by `epdsi`
+  rather than supplied by the vendor. Every gray level pushes its pixels towards white, then
+  towards black for the same time, so a gray image carries no net charge. Gray refreshes run at
+  100 Hz for 10 ms steps, restoring the panel's 50 Hz afterwards.
+  - `Uc8253RefreshMode::Gray4`: 4 levels in one refresh, drawn onto a white screen. The two RAM
+    planes carry a 2-bit gray code, drawn with `GrayBufferPair` and the new
+    `Gray4Polarity::UC8253_SFE213ZHBW`. Tuned with `with_gray4_black_ms` (default 160 ms).
+  - `Uc8253Controller::draw_grayscale`: 2–16 levels over several refreshes, after antirez's
+    `uc8151_micropython`: one pass per three levels, each darkening its pixels from white.
+    Pixels come from a `FnMut(x, y) -> u8` luminance closure, so no frame is buffered. Tuned
+    with `with_grayscale_black_ms` (default 160 ms; the glass is fully black within about
+    120–180 ms, so longer pulses merge the darkest levels).
+  - `Uc8253RefreshMode::Balanced`: a monochrome update with the same property. Only changed
+    pixels are driven (no flash), each pushed away from and then towards its target colour
+    for `with_balanced_ms` (default 200 ms). Unlike the vendor DU refresh, black pixels owe
+    nothing, so a power loss at any point leaves no charge behind.
+  - `Uc8253Controller::clear_to_white` and `Uc8253WhiteClear`: return to white with the refresh
+    that stays charge-balanced for how the screen was drawn. `Mono` (DU, ~0.4 s) or
+    `MonoFlash` (GC) repay a DU image's black pixels, keeping the OLD plane. `BalancedFlash`
+    rewrites both planes white for an even GC flash after balanced refreshes, or when nothing
+    is known about the screen. `AlreadyWhite` sends nothing. `draw_grayscale` takes one for its
+    opening clear.
+  - `Uc8253RefreshMode::GlobalClear`: a refresh with the vendor GC LUTs.
+
+  These modes wait for the refresh to finish. The DU refresh still returns without waiting.
+  `Full`/`FastFull`/`Partial`/`FastPartial` still refresh with the DU LUTs on this profile,
+  and other variants treat the new modes as `Full`. `ValidationError`/`EpdBusError` gain
+  `Unsupported`, returned by the grayscale methods on other variants. The gray waveforms are
+  only partly verified on hardware.
 
 ## [0.3.1] - 2026-09-12
 

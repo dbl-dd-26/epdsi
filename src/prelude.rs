@@ -7,7 +7,7 @@ pub use crate::controllers::{
     PervasiveBwryOtpError, PervasiveBwryVariant, PervasiveDriverVariant, PervasiveRefreshMode,
     Ssd1677Controller, Ssd1677RefreshMode, Ssd1680Controller, Ssd1680RefreshMode,
     Ssd1681Controller, Ssd1681RefreshMode, Ssd168xController, Ssd168xRefreshMode, Ssd168xVariant,
-    Uc8253Controller, Uc8253RefreshMode, Uc8253Variant,
+    Uc8253Controller, Uc8253RefreshMode, Uc8253Variant, Uc8253WhiteClear,
 };
 pub use crate::driver::{EpdBuilder, EpdDriver};
 pub use crate::graphics::buffer::{

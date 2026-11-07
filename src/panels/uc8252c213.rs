@@ -23,6 +23,12 @@
 //!   [`EpdDriver::clear_frame`](crate::driver::EpdDriver::clear_frame) fills with `0xFF` for a
 //!   white background. This is the opposite of the tri-colour
 //!   [`SE0352N14TNGA0`](super::SE0352N14TNGA0), which clears with `0x00`.
+//! - **Grayscale**: not a vendor feature. `epdsi` computes waveforms for a one-refresh 4-level
+//!   mode ([`Uc8253RefreshMode::Gray4`](crate::controllers::Uc8253RefreshMode::Gray4)) and a
+//!   multi-refresh mode of up to 16 levels
+//!   ([`Uc8253Controller::draw_grayscale`](crate::controllers::Uc8253Controller::draw_grayscale)).
+//!   Clear between images with
+//!   [`Uc8253Controller::clear_to_white`](crate::controllers::Uc8253Controller::clear_to_white).
 
 use crate::traits::{ColorMode, EpdPanel};
 

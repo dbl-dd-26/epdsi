@@ -417,6 +417,16 @@ impl Gray4Polarity {
         plane_b_ink_is_set_bit: true,
     };
 
+    /// The UC8253 `SFE213ZHBW` Gray4 convention
+    /// ([`Uc8253RefreshMode::Gray4`](crate::controllers::Uc8253RefreshMode::Gray4)): both planes
+    /// inverted, matching the panel's `0xFF`-is-white RAM, so White is a white→white pixel.
+    /// Plane A is the NEW plane ([`ColorChannel::BlackWhite`](crate::traits::ColorChannel)) and
+    /// plane B the OLD one (`ColorChannel::RedYellow`).
+    pub const UC8253_SFE213ZHBW: Self = Self {
+        plane_a_ink_is_set_bit: false,
+        plane_b_ink_is_set_bit: false,
+    };
+
     /// The background (`Gray4Color::White`) fill byte for the Black/White plane under this
     /// polarity.
     pub const fn plane_a_background_byte(&self) -> u8 {

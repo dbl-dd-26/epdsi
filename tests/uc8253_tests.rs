@@ -820,3 +820,334 @@ async fn uc8252c213_driver_smoke_body() {
         .expect("UC8252C213 sleep failed");
 }
 epd_test!(test_uc8252c213_driver_smoke, uc8252c213_driver_smoke_body);
+
+/// First 7 bytes (group 1) of a 42-byte `Sfe213zhbw` LUT, the rest asserted zero.
+fn lut_group1(payload: &[u8]) -> [u8; 7] {
+    assert_eq!(payload.len(), 42);
+    assert!(payload[7..].iter().all(|&b| b == 0), "only group 1 is used");
+    payload[..7].try_into().unwrap()
+}
+
+fn sfe213zhbw_bus_controller(
+    bus_backend: &RecordingSpiBus,
+) -> (
+    SpiBusWrapper<&RecordingSpiBus, TestDc<'_>, DummyPin, FixedPin>,
+    Uc8253Controller,
+) {
+    // Active-low BUSY: `true` (high) means idle, so the BUSY waits return immediately.
+    let bus = SpiBusWrapper::new(bus_backend, TestDc(bus_backend), DummyPin, FixedPin(true));
+    let controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT)
+        .with_variant(Uc8253Variant::Sfe213zhbw);
+    (bus, controller)
+}
+
+/// `GlobalClear` loads the vendor GC LUTs (the init waveform) and triggers the Auto Sequence.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn sfe213zhbw_global_clear_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let (mut bus, controller) = sfe213zhbw_bus_controller(&bus_backend);
+    let mut controller = controller.with_refresh_mode(Uc8253RefreshMode::GlobalClear);
+    let mut delay = DummyDelay;
+
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(commands, vec![0x20, 0x21, 0x24, 0x22, 0x23, 0x17]);
+    assert_eq!(lut_group1(&pairs[0].1), [0x01, 0x0F, 0x0F, 0x0F, 0x01, 0x01, 0x01]);
+    assert_eq!(lut_group1(&pairs[1].1), [0x01, 0x4F, 0x8F, 0x0F, 0x01, 0x01, 0x01]);
+    assert_eq!(lut_group1(&pairs[2].1), [0x01, 0x0F, 0x8F, 0x4F, 0x01, 0x01, 0x01]);
+    assert_eq!(lut_group1(&pairs[3].1), [0x01, 0x0F, 0x8F, 0x0F, 0x01, 0x01, 0x01]);
+    assert_eq!(lut_group1(&pairs[4].1), [0x01, 0x4F, 0x8F, 0x4F, 0x01, 0x01, 0x01]);
+    assert_eq!(pairs[5].1, vec![0xA5]);
+}
+epd_test!(test_sfe213zhbw_global_clear, sfe213zhbw_global_clear_body);
+
+/// Balanced gray level table: `k` frames towards white (VSL), then `k` towards black (VSH).
+fn balanced(k: u8) -> [u8; 7] {
+    [0x01, 0x80 | k, 0x40 | k, 0x00, 0x00, 0x01, 0x01]
+}
+
+/// `Gray4` runs at 100 Hz and loads one balanced table per gray level. With the default 160 ms
+/// (16 frames), Light/Dark/Black get 5/11/16 frames each way and White an empty table. Light sits
+/// on WK (`0x23`), Dark on KW (`0x22`), Black on KK; the next load swaps `0x22`/`0x23` like
+/// every other `Sfe213zhbw` LUT load.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn sfe213zhbw_gray4_refresh_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let (mut bus, controller) = sfe213zhbw_bus_controller(&bus_backend);
+    let mut controller = controller.with_refresh_mode(Uc8253RefreshMode::Gray4);
+    let mut delay = DummyDelay;
+
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(
+        commands,
+        vec![0x30, 0x20, 0x21, 0x24, 0x22, 0x23, 0x17, 0x30]
+    );
+    assert_eq!(pairs[0].1, vec![0x13]); // 100 Hz
+    assert_eq!(lut_group1(&pairs[1].1), [0x01, 0x10, 0x10, 0x00, 0x00, 0x01, 0x01]);
+    assert_eq!(pairs[2].1, vec![0x00; 42]); // White: untouched
+    assert_eq!(lut_group1(&pairs[3].1), balanced(16)); // Black
+    assert_eq!(lut_group1(&pairs[4].1), balanced(11)); // Dark
+    assert_eq!(lut_group1(&pairs[5].1), balanced(5)); // Light
+    assert_eq!(pairs[6].1, vec![0xA5]);
+    assert_eq!(pairs[7].1, vec![0x09]); // back to 50 Hz
+
+    bus_backend.records.borrow_mut().clear();
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(
+        commands,
+        vec![0x30, 0x20, 0x21, 0x24, 0x23, 0x22, 0x17, 0x30]
+    );
+    assert_eq!(lut_group1(&pairs[4].1), balanced(11)); // Dark, now to 0x23
+    assert_eq!(lut_group1(&pairs[5].1), balanced(5)); // Light, now to 0x22
+}
+epd_test!(test_sfe213zhbw_gray4_refresh, sfe213zhbw_gray4_refresh_body);
+
+/// `Balanced` runs at 100 Hz and drives only changed pixels: white→black (WK, `0x23`) pushes
+/// white then black, black→white (KW, `0x22`) black then white, 20 frames (200 ms) each by
+/// default. White→white and black→black get empty tables.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn sfe213zhbw_balanced_refresh_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let (mut bus, controller) = sfe213zhbw_bus_controller(&bus_backend);
+    let mut controller = controller.with_refresh_mode(Uc8253RefreshMode::Balanced);
+    let mut delay = DummyDelay;
+
+    controller
+        .trigger_refresh(&mut bus, &mut delay)
+        .await
+        .unwrap();
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(
+        commands,
+        vec![0x30, 0x20, 0x21, 0x24, 0x22, 0x23, 0x17, 0x30]
+    );
+    assert_eq!(pairs[0].1, vec![0x13]); // 100 Hz
+    assert_eq!(lut_group1(&pairs[1].1), [0x01, 0x14, 0x14, 0x00, 0x00, 0x01, 0x01]);
+    assert_eq!(pairs[2].1, vec![0x00; 42]); // WW: untouched
+    assert_eq!(pairs[3].1, vec![0x00; 42]); // KK: untouched
+    assert_eq!(lut_group1(&pairs[4].1), [0x01, 0x54, 0x94, 0x00, 0x00, 0x01, 0x01]); // KW
+    assert_eq!(lut_group1(&pairs[5].1), balanced(20)); // WK
+    assert_eq!(pairs[7].1, vec![0x09]); // back to 50 Hz
+
+    assert_eq!(controller.balanced_ms(), 200);
+    assert_eq!(controller.with_balanced_ms(155).balanced_ms(), 160);
+}
+epd_test!(test_sfe213zhbw_balanced_refresh, sfe213zhbw_balanced_refresh_body);
+
+#[test]
+fn test_sfe213zhbw_gray_black_ms_rounds_and_clamps() {
+    let controller = Uc8253Controller::new(Uc8252c213::WIDTH, Uc8252c213::HEIGHT);
+    assert_eq!(controller.gray4_black_ms(), 160);
+    assert_eq!(controller.grayscale_black_ms(), 160);
+    assert_eq!(controller.with_gray4_black_ms(124).gray4_black_ms(), 120);
+    assert_eq!(controller.with_grayscale_black_ms(124).grayscale_black_ms(), 120);
+    assert_eq!(controller.with_grayscale_black_ms(125).grayscale_black_ms(), 130);
+    assert_eq!(controller.with_grayscale_black_ms(0).grayscale_black_ms(), 10);
+    assert_eq!(controller.with_grayscale_black_ms(5000).grayscale_black_ms(), 630);
+    assert_eq!(controller.with_gray4_black_ms(u16::MAX).gray4_black_ms(), 630);
+}
+
+/// Records the commands `clear_to_white` sends for `clear`, with their payloads.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn clear_to_white_pairs(clear: Uc8253WhiteClear) -> Vec<(u8, Vec<u8>)> {
+    let bus_backend = RecordingSpiBus::new();
+    let (mut bus, mut controller) = sfe213zhbw_bus_controller(&bus_backend);
+    let mut delay = DummyDelay;
+    controller
+        .clear_to_white(&mut bus, &mut delay, clear)
+        .await
+        .unwrap();
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    pairs
+}
+
+/// Each `Uc8253WhiteClear` writes the NEW plane white and keeps the OLD plane, except
+/// `BalancedFlash`, which also whites the OLD plane so every pixel gets the even flash.
+/// `Mono` refreshes with the DU tables, the flashes with GC, and `AlreadyWhite` sends nothing.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn sfe213zhbw_clear_to_white_body() {
+    const LUTS: [u8; 6] = [0x20, 0x21, 0x24, 0x22, 0x23, 0x17];
+    let commands = |pairs: &[(u8, Vec<u8>)]| pairs.iter().map(|(c, _)| *c).collect::<Vec<u8>>();
+
+    let mono = clear_to_white_pairs(Uc8253WhiteClear::Mono).await;
+    assert_eq!(commands(&mono), [&[0x13][..], &LUTS].concat());
+    assert_eq!(mono[0].1, vec![0xFF; 4000]);
+    assert_eq!(lut_group1(&mono[4].1), [0x01, 0x8F, 0x01, 0x00, 0x00, 0x01, 0x01]); // DU K2W
+
+    let mono_flash = clear_to_white_pairs(Uc8253WhiteClear::MonoFlash).await;
+    assert_eq!(commands(&mono_flash), [&[0x13][..], &LUTS].concat());
+    assert_eq!(lut_group1(&mono_flash[2].1), [0x01, 0x4F, 0x8F, 0x0F, 0x01, 0x01, 0x01]); // GC W2W
+
+    let balanced_flash = clear_to_white_pairs(Uc8253WhiteClear::BalancedFlash).await;
+    assert_eq!(commands(&balanced_flash), [&[0x10, 0x13][..], &LUTS].concat());
+    assert_eq!(balanced_flash[0].1, vec![0xFF; 4000]);
+    assert_eq!(balanced_flash[1].1, vec![0xFF; 4000]);
+    assert_eq!(lut_group1(&balanced_flash[3].1), [0x01, 0x4F, 0x8F, 0x0F, 0x01, 0x01, 0x01]);
+
+    assert!(clear_to_white_pairs(Uc8253WhiteClear::AlreadyWhite).await.is_empty());
+}
+epd_test!(test_sfe213zhbw_clear_to_white, sfe213zhbw_clear_to_white_body);
+
+/// `draw_grayscale` clears first as asked (here `Mono`: a DU refresh to white), then runs one
+/// pass per three gray levels in use, at 100 Hz. With 4 levels and only black and white pixels,
+/// the single pass routes black (level 3) to WK (OLD set, NEW clear) and parks white on the empty
+/// KW table (OLD clear, NEW set).
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn sfe213zhbw_draw_grayscale_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let (mut bus, mut controller) = sfe213zhbw_bus_controller(&bus_backend);
+    let mut delay = DummyDelay;
+
+    controller
+        .draw_grayscale(&mut bus, &mut delay, Uc8253WhiteClear::Mono, 4, |x, _y| {
+            if x < 8 { 0 } else { 255 }
+        })
+        .await
+        .unwrap();
+
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let commands: Vec<u8> = pairs.iter().map(|(c, _)| *c).collect();
+    assert_eq!(
+        commands,
+        vec![
+            0x13, // NEW plane white; OLD keeps the image on the glass
+            0x20, 0x21, 0x24, 0x22, 0x23, 0x17, // DU clear, at 50 Hz
+            0x30, // 100 Hz for the passes
+            0x10, 0x13, // pass planes
+            0x20, 0x21, 0x24, 0x23, 0x22, 0x17, // pass LUTs, LUT2/LUT3 swapped on this load
+            0x30, // back to 50 Hz
+        ]
+    );
+    assert_eq!(pairs[0].1, vec![0xFF; 4000]);
+    assert_eq!(lut_group1(&pairs[4].1), [0x01, 0x8F, 0x01, 0x00, 0x00, 0x01, 0x01]); // DU K2W
+    assert_eq!(pairs[7].1, vec![0x13]);
+    assert_eq!(pairs[16].1, vec![0x09]);
+
+    let mut old_row = [0x00u8; 16];
+    old_row[0] = 0xFF;
+    let mut new_row = [0xFFu8; 16];
+    new_row[0] = 0x00;
+    assert_eq!(pairs[8].1, old_row.repeat(250));
+    assert_eq!(pairs[9].1, new_row.repeat(250));
+
+    // 160 ms to black is 16 frames at 100 Hz: 5/11/16 frames each way for levels 1/2/3.
+    assert_eq!(lut_group1(&pairs[10].1), [0x01, 0x10, 0x10, 0x00, 0x00, 0x01, 0x01]);
+    assert_eq!(lut_group1(&pairs[11].1), balanced(5)); // WW: level 1
+    assert_eq!(lut_group1(&pairs[12].1), balanced(11)); // KK: level 2
+    // Swapped load: register 0x23 receives the (empty) KW table, 0x22 the WK table.
+    assert_eq!(pairs[13].1, vec![0x00; 42]);
+    assert_eq!(lut_group1(&pairs[14].1), balanced(16)); // WK: level 3
+    assert_eq!(pairs[15].1, vec![0xA5]);
+}
+epd_test!(test_sfe213zhbw_draw_grayscale, sfe213zhbw_draw_grayscale_body);
+
+/// Passes whose three levels no pixel uses are skipped: a uniform mid-gray at 16 levels on an
+/// already-white screen needs exactly one refresh, though all five passes stream their planes.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn sfe213zhbw_draw_grayscale_skips_empty_passes_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let (mut bus, mut controller) = sfe213zhbw_bus_controller(&bus_backend);
+    let mut delay = DummyDelay;
+
+    controller
+        .draw_grayscale(&mut bus, &mut delay, Uc8253WhiteClear::AlreadyWhite, 16, |_x, _y| 128)
+        .await
+        .unwrap();
+
+    let pairs = command_payloads(&bus_backend.records.borrow());
+    let refreshes = pairs.iter().filter(|(c, _)| *c == 0x17).count();
+    assert_eq!(refreshes, 1);
+    let plane_writes = pairs.iter().filter(|(c, _)| *c == 0x13).count();
+    assert_eq!(plane_writes, 5);
+}
+epd_test!(
+    test_sfe213zhbw_draw_grayscale_skips_empty_passes,
+    sfe213zhbw_draw_grayscale_skips_empty_passes_body
+);
+
+/// The grayscale entry points are specific to the `Sfe213zhbw` profile and send nothing
+/// elsewhere.
+#[maybe_async_cfg::maybe(
+    sync(feature = "blocking", keep_self),
+    async(not(feature = "blocking"), keep_self)
+)]
+async fn uc8253_draw_grayscale_unsupported_body() {
+    let bus_backend = RecordingSpiBus::new();
+    let mut bus = SpiBusWrapper::new(&bus_backend, TestDc(&bus_backend), DummyPin, FixedPin(true));
+    let mut controller = Uc8253Controller::new(GDEY037T03::WIDTH, GDEY037T03::HEIGHT);
+    let mut delay = DummyDelay;
+
+    let result = controller
+        .draw_grayscale(&mut bus, &mut delay, Uc8253WhiteClear::Mono, 4, |_x, _y| 0)
+        .await;
+    assert!(matches!(result, Err(EpdBusError::Unsupported)));
+    let result = controller
+        .clear_to_white(&mut bus, &mut delay, Uc8253WhiteClear::BalancedFlash)
+        .await;
+    assert!(matches!(result, Err(EpdBusError::Unsupported)));
+    assert!(bus_backend.records.borrow().is_empty());
+}
+epd_test!(
+    test_uc8253_draw_grayscale_unsupported,
+    uc8253_draw_grayscale_unsupported_body
+);
+
+/// `Gray4Polarity::UC8253_SFE213ZHBW` keeps the panel's 0xFF-white RAM: White leaves both
+/// planes set, Light clears only plane A (NEW), Dark only plane B (OLD), Black both.
+#[test]
+fn test_gray4_polarity_uc8253_sfe213zhbw() {
+    let mut plane_a = [0u8; 16];
+    let mut plane_b = [0u8; 16];
+    let mut pair = GrayBufferPair::new(
+        &mut plane_a,
+        &mut plane_b,
+        122,
+        1,
+        0,
+        Gray4Polarity::UC8253_SFE213ZHBW,
+    );
+    pair.clear();
+    pair.set_pixel(1, 0, Gray4Color::Light);
+    pair.set_pixel(2, 0, Gray4Color::Dark);
+    pair.set_pixel(3, 0, Gray4Color::Black);
+    assert_eq!(pair.plane_a().as_slice()[0], 0b1010_1111);
+    assert_eq!(pair.plane_b().as_slice()[0], 0b1100_1111);
+    assert_eq!(pair.plane_a().as_slice()[1], 0xFF);
+}

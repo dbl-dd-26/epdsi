@@ -39,6 +39,9 @@ pub enum ValidationError {
     },
     /// A `set_window` call named coordinates outside the panel, or an inverted range.
     InvalidWindow,
+    /// The operation needs a controller register profile other than the configured one (for
+    /// example multi-level grayscale, which only the `Sfe213zhbw` UC8253 profile supports).
+    Unsupported,
 }
 
 /// Bus error wrapper categorizing errors from SPI transfers or GPIO toggling.
@@ -63,6 +66,8 @@ pub enum EpdBusError<SPIE, DCE, RSTE, BUSYE> {
     },
     /// A `set_window` call named coordinates outside the panel, or an inverted range.
     InvalidWindow,
+    /// The operation is not supported by the configured controller register profile.
+    Unsupported,
 }
 
 impl<SPIE, DCE, RSTE, BUSYE> From<ValidationError> for EpdBusError<SPIE, DCE, RSTE, BUSYE> {
@@ -72,6 +77,7 @@ impl<SPIE, DCE, RSTE, BUSYE> From<ValidationError> for EpdBusError<SPIE, DCE, RS
                 EpdBusError::BufferTooSmall { required, provided }
             }
             ValidationError::InvalidWindow => EpdBusError::InvalidWindow,
+            ValidationError::Unsupported => EpdBusError::Unsupported,
         }
     }
 }
